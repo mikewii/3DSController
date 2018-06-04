@@ -13,3 +13,4 @@ extern struct settings defaultSettings;
 extern Handle fileHandle;
 
 bool readSettings(void);
+void writeSettings(void);

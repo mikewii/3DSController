@@ -76,3 +76,33 @@ inline void drawKeyboard(void) {
 	drawBox((int)((float)10 * 320.0f / 12.0f) + 1, (int)(78.0f + (float)1 * 320.0f / 12.0f) + 1, (int)(2.0f * 320.0f / 12.0f) - 1, (int)(3.0f * 320.0f / 12.0f) - 1, 31, 0, 0);
 	*/
 }
+
+int swkbd(char* out, const char* htext, const char* def, int maxlength) {
+    SwkbdState kb;
+    swkbdInit(&kb, SWKBD_TYPE_QWERTY, 2, maxlength);
+    swkbdSetInitialText(&kb, def);
+    swkbdSetHintText(&kb, htext);
+    swkbdSetButton(&kb, SWKBD_BUTTON_LEFT, "Cancel", false);
+    swkbdSetButton(&kb, SWKBD_BUTTON_RIGHT, "Confirm", true);
+    swkbdSetValidation(&kb, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+    swkbdInputText(&kb, out, maxlength);
+    SwkbdResult result = swkbdGetResult(&kb);
+    return (result==SWKBD_D1_CLICK1);
+}
+
+int swkbd_int(int* out, const char* htext, int def) {
+    static char buffer[11] = "";
+    SwkbdState kb;
+    swkbdInit(&kb, SWKBD_TYPE_NUMPAD, 2, sizeof(buffer) - 1);
+    snprintf(buffer, sizeof(buffer)-1, "%d", def);
+    swkbdSetInitialText(&kb, buffer);
+    swkbdSetHintText(&kb, htext);
+    swkbdSetButton(&kb, SWKBD_BUTTON_LEFT, "Cancel", false);
+    swkbdSetButton(&kb, SWKBD_BUTTON_RIGHT, "Confirm", true);
+    swkbdSetFeatures(&kb, SWKBD_FIXED_WIDTH);
+    swkbdSetValidation(&kb, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+    swkbdInputText(&kb, buffer, sizeof(buffer));
+    SwkbdResult result = swkbdGetResult(&kb);
+    *out = atoi(buffer);
+    return (result==SWKBD_D1_CLICK1);
+}

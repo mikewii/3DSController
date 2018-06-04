@@ -83,6 +83,30 @@ int main(void) {
 	if(!readSettings()) {
 		hang("Could not read 3DSController.ini!");
 	}
+    
+	gfxFlushBuffers();
+	gfxSwapBuffers();
+    
+    while(aptMainLoop()) {
+        hidScanInput();
+        u32 kDown = hidKeysHeld();
+		if(kDown & KEY_X) {
+            swkbd(settings.IPString, "IPString", settings.IPString, sizeof(settings.IPString));
+            swkbd_int(&settings.port, "Port", settings.port);
+            inet_pton4(settings.IPString, (unsigned char *)&(saout.sin_addr));
+            writeSettings();
+        }
+        if(kDown & KEY_START) break;
+        
+        clearScreen();
+        drawString(10, 10, "IP: %s, port: %d", settings.IPString, settings.port);
+        drawString(10, 20, "Press X to configure IP and port.");
+        drawString(10, 30, "Press START to continue.");
+
+        gfxFlushBuffers();
+		gspWaitForVBlank();
+		gfxSwapBuffers();
+    }
 	
 	clearScreen();
 	drawString(10, 10, "Connecting to %s on port %d...", settings.IPString, settings.port);
@@ -163,6 +187,12 @@ int main(void) {
 	exit:
 	
 	enableBacklight();
+    while(aptMainLoop()) {
+        gfxFlushBuffers();
+        gspWaitForVBlank();
+        gfxSwapBuffers();
+        break;
+    }
 	
 	SOCU_ShutdownSockets();
 	
