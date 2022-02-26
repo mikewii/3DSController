@@ -30,14 +30,15 @@ void hang(char *message) {
 	}
 }
 
-int main(void) {
+int main(void)
+{
 	acInit();
 	gfxInitDefault();
 	
 	gfxSetDoubleBuffering(GFX_TOP, false);
 	gfxSetDoubleBuffering(GFX_BOTTOM, false);
 	
-	if(setjmp(exitJmp)) goto exit;
+    if (setjmp(exitJmp)) goto exit;
 	
 	preRenderKeyboard();
 	
@@ -68,7 +69,7 @@ int main(void) {
 		drawString(10, 50, "You can alternatively press Start and Select to exit.");
 		
 		u32 kHeld = hidKeysHeld();
-		if((kHeld & KEY_START) && (kHeld & KEY_SELECT)) longjmp(exitJmp, 1);
+        if ((kHeld & KEY_START) && (kHeld & KEY_SELECT)) longjmp(exitJmp, 1);
 		
 		gfxFlushBuffers();
 		gspWaitForVBlank();
@@ -185,7 +186,7 @@ int main(void) {
 	}
 	
 	exit:
-	
+
 	enableBacklight();
     while(aptMainLoop()) {
         gfxFlushBuffers();
@@ -194,6 +195,7 @@ int main(void) {
         break;
     }
 	
+    sendDisconnectRequest();
 	SOCU_ShutdownSockets();
 	
 	svcCloseHandle(fileHandle);

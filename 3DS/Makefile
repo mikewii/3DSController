@@ -47,7 +47,7 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-fms-extensions \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	+=	$(INCLUDE) -DARM11 -D__3DS__
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
@@ -150,7 +150,7 @@ endif
 $(OUTPUT).3dsx	:	$(OUTPUT).elf
 
 $(OUTPUT).3ds	:	$(OUTPUT)stripped.elf
-	makerom -f cci -o $(OUTPUT).3ds -rsf "$(TOPDIR)/cxi/gw_workaround.rsf" -target d -exefslogo -elf $(OUTPUT)stripped.elf -icon "$(TOPDIR)/cxi/icon.icn" -banner "$(TOPDIR)/cxi/banner.bnr"
+	-makerom -f cci -o $(OUTPUT).3ds -rsf "$(TOPDIR)/cxi/gw_workaround.rsf" -target d -exefslogo -elf $(OUTPUT)stripped.elf -icon "$(TOPDIR)/cxi/icon.icn" -banner "$(TOPDIR)/cxi/banner.bnr"
 
 $(OUTPUT).cia	:	$(OUTPUT)stripped.elf
 	makerom -f cia -o $(OUTPUT).cia -elf $(OUTPUT)stripped.elf -rsf "$(TOPDIR)/cxi/build_cia.rsf" -icon "$(TOPDIR)/cxi/icon.icn" -banner "$(TOPDIR)/cxi/banner.bnr" -exefslogo -target t
@@ -176,9 +176,6 @@ $(OUTPUT)stripped.elf : $(OUTPUT).elf
 	@echo $(notdir $<)
 	@python $(AEMSTRO)/aemstro_as.py $< ../$(notdir $<).shbin
 	@bin2s ../$(notdir $<).shbin | $(PREFIX)as -o $@
-	@echo "extern const u8" `(echo $(notdir $<).shbin | sed -e 's/^\([0-9]\)/_\1/' | tr . _)`"_end[];" > `(echo $(notdir $<).shbin | tr . _)`.h
-	@echo "extern const u8" `(echo $(notdir $<).shbin | sed -e 's/^\([0-9]\)/_\1/' | tr . _)`"[];" >> `(echo $(notdir $<).shbin | tr . _)`.h
-	@echo "extern const u32" `(echo $(notdir $<).shbin | sed -e 's/^\([0-9]\)/_\1/' | tr . _)`_size";" >> `(echo $(notdir $<).shbin | tr . _)`.h
 	@rm ../$(notdir $<).shbin
 
 -include $(DEPENDS)

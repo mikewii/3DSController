@@ -17,61 +17,27 @@
 #define DEFAULT_PORT 8889
 
 enum NET_COMMANDS {
-	CONNECT,
-	KEYS,
-	SCREENSHOT,
+    CONNECT = 0,
+    DISCONNECT,
+    KEYS
 };
 
 // It is deliberately set up to have an anonymous struct as well as a named struct for convenience, not a mistake!
-struct packet {
-	union {
-		struct packetHeader {
-			unsigned char command;
-			unsigned char keyboardActive;
-		};
-		struct packetHeader packetHeader;
-	};
-	
-	union {
-		// CONNECT
-		union {
-			struct connectPacket {
-			};
-			struct connectPacket connectPacket;
-		};
-		
-		// KEYS
-		union {
-			struct keysPacket {
-				unsigned int keys;
-				
-				struct {
-					short x;
-					short y;
-				} circlePad;
-				
-				struct {
-					unsigned short x;
-					unsigned short y;
-				} touch;
-				
-				struct {
-					short x;
-					short y;
-				} cStick;
-			};
-			struct keysPacket keysPacket;
-		};
-		
-		// SCREENSHOT
-		union {
-			struct screenshotPacket {
-				unsigned short offset;
-				unsigned char data[SCREENSHOT_CHUNK];
-			};
-			struct screenshotPacket screenshotPacket;
-		};
-	};
+struct packet { // BBxxIhhHHhh
+    struct {
+        u8 command;
+        u8 keyboardActive;
+        u8 padding[2];
+    } packetHeader;
+
+    // KEYS
+    struct {
+        u32 keys;
+
+        circlePosition  circlePad;
+        touchPosition   touch;
+        circlePosition  cStick;
+    } keysPacket;
 };
 
 extern int sock;
@@ -80,8 +46,9 @@ extern struct packet outBuf, rcvBuf;
 
 extern socklen_t sockaddr_in_sizePtr;
 
-bool openSocket(int port);
-void sendBuf(int length);
-int receiveBuffer(int length);
-void sendConnectionRequest(void);
-void sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick);
+bool    openSocket(int port);
+void    sendBuf(int length);
+int     receiveBuffer(int length);
+void    sendConnectionRequest(void);
+void    sendDisconnectRequest(void);
+void    sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick);

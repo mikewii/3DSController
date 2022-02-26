@@ -183,7 +183,7 @@ keyboard_prevkey = currentKeyboardKey(0, 0)
 while True:
 	rawdata, addr = sock.recvfrom(4096)
 	rawdata = bytearray(rawdata)
-	#print("received message", rawdata, "from", addr)
+	print("received message", rawdata, "from", addr)
 	
 	if rawdata[0]==command.CONNECT:
 		pass # CONNECT packets are empty

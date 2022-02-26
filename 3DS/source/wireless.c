@@ -1,8 +1,8 @@
 #include <stddef.h>
 
 #include "keyboard.h"
-
 #include "wireless.h"
+
 
 int sock;
 struct sockaddr_in sain, saout;
@@ -32,18 +32,30 @@ int receiveBuffer(int length) {
 	return recvfrom(sock, (char *)&rcvBuf, length, 0, (struct sockaddr *)&sain, &sockaddr_in_sizePtr);
 }
 
-void sendConnectionRequest(void) {
-	outBuf.command = CONNECT;
-	outBuf.keyboardActive = keyboardActive;
-	sendBuf(offsetof(struct packet, connectPacket) + sizeof(struct connectPacket));
+void sendConnectionRequest(void)
+{
+    outBuf.packetHeader.command = CONNECT;
+    outBuf.packetHeader.keyboardActive = keyboardActive;
+
+    sendBuf(sizeof(struct packet));
 }
 
-void sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick) {
-	outBuf.command = KEYS;
-	outBuf.keyboardActive = keyboardActive;
-	memcpy(&outBuf.keys, &keys, 4);
-	memcpy(&outBuf.circlePad, &circlePad, 4);
-	memcpy(&outBuf.touch, &touch, 4);
-	memcpy(&outBuf.cStick, &cStick, 4);
-	sendBuf(offsetof(struct packet, keysPacket) + sizeof(struct keysPacket));
+void sendDisconnectRequest(void)
+{
+    outBuf.packetHeader.command = DISCONNECT;
+
+    sendBuf(sizeof(struct packet));
+}
+
+void sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick)
+{
+    outBuf.packetHeader.command = KEYS;
+    outBuf.packetHeader.keyboardActive = keyboardActive;
+
+    outBuf.keysPacket.keys = keys;
+    outBuf.keysPacket.circlePad = circlePad;
+    outBuf.keysPacket.touch = touch;
+    outBuf.keysPacket.cStick = cStick;
+
+    sendBuf(sizeof(struct packet));
 }

@@ -66,8 +66,8 @@ class x: pass
 
 command = x()
 command.CONNECT = 0
-command.KEYS = 1
-command.SCREENSHOT = 2
+command.DISCONNECT = 1
+command.KEYS = 2
 
 keynames = [
 	"A", "B", "Select", "Start", "Right", "Left", "Up", "Down",
@@ -117,14 +117,18 @@ touch_last_x = 0
 touch_last_y = 0
 
 while True:
-	rawdata, addr = sock.recvfrom(4096)
+	rawdata, addr = sock.recvfrom(32)
 	rawdata = bytearray(rawdata)
+	
 	#print("received message", rawdata, "from", addr)
 	
 	if rawdata[0]==command.CONNECT:
-		pass # CONNECT packets are empty
+		print("Connected to", addr)
+
+	elif rawdata[0]==command.DISCONNECT:
+		print("Disconnected from", addr)
 	
-	if rawdata[0]==command.KEYS:
+	elif rawdata[0]==command.KEYS:
 		fields = struct.unpack("<BBxxIhhHHhh", rawdata)
 		
 		data = {
@@ -158,5 +162,5 @@ while True:
 		device.emit(uinput.ABS_RX, data["cstickX"], syn=False)
 		device.emit(uinput.ABS_RY, data["cstickY"])
 	
-	if rawdata[0]==command.SCREENSHOT:
+	elif rawdata[0]==command.SCREENSHOT:
 		pass # unused by both 3DS and PC applications
