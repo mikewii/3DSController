@@ -10,19 +10,16 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "inet_pton.h"
-
 #define SCREENSHOT_CHUNK 4000
 
 #define DEFAULT_PORT 8889
 
 enum NET_COMMANDS {
-    CONNECT = 0,
+    CONNECT = 1,
     DISCONNECT,
     KEYS
 };
 
-// It is deliberately set up to have an anonymous struct as well as a named struct for convenience, not a mistake!
 struct packet { // BBxxIhhHHhh
     struct {
         u8 command;
@@ -50,5 +47,5 @@ bool    openSocket(int port);
 void    sendBuf(int length);
 int     receiveBuffer(int length);
 void    sendConnectionRequest(void);
-void    sendDisconnectRequest(void);
+void    sendDisconnect(void);
 void    sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick);

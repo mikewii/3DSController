@@ -5,16 +5,16 @@ from __future__ import print_function
 import socket, struct, time
 import uinput
 
-##########################################################
-# CONFIGURABLE REGION START - Don't touch anything above #
-##########################################################
-port = 8889
 
-#Valid values can be found in any of these locations on your Linux system (some may not exist):
+port = 8889
+class x: pass
+
+command = x()
+command.CONNECT = 1
+command.DISCONNECT = 2
+command.KEYS = 3
+
 # /usr/include/linux/input-event-codes.h
-#The virtual device is defined on the device variable and the mapping of the keys on btn_map
-#RECAP keynames (DO NOT TOUCH) are the keys that we expect commming from the 3ds, device is
-#the virtual device that we define and btn_map maps what we recieve with our virtual device
 btn_map = {
 	"A": uinput.BTN_A,
 	"B": uinput.BTN_B,
@@ -24,104 +24,91 @@ btn_map = {
 	"R": uinput.BTN_TR,
 	"ZL": uinput.BTN_THUMBL,
 	"ZR": uinput.BTN_THUMBR,
-	"Left": uinput.BTN_DPAD_LEFT,
-	"Right": uinput.BTN_DPAD_RIGHT,
-	"Up": uinput.BTN_DPAD_UP,
-	"Down": uinput.BTN_DPAD_DOWN,
 	"Start": uinput.BTN_START,
 	"Select": uinput.BTN_SELECT,
-	"Tap": uinput.BTN_MODE,
 }
 
-device = uinput.Device([
+device = uinput.Device((
 	uinput.ABS_X + (-159, 159, 0, 10),
-	uinput.ABS_Y + (-159, 159, 0, 10),
+	uinput.ABS_Y + (-159, 159, 0, 10),	
 	uinput.ABS_RX + (-146, 146, 0, 16),
 	uinput.ABS_RY + (-146, 146, 0, 16),
+
+	uinput.ABS_HAT0X + (-1, 1, 0, 0),
+	uinput.ABS_HAT0Y + (-1, 1, 0, 0),
+
+	# uinput.ABS_Z + (-1, 1, 0, 0),
+	# uinput.ABS_RZ + (-1, 1, 0, 0),
+
 	uinput.BTN_A,
 	uinput.BTN_B,
 	uinput.BTN_X,
 	uinput.BTN_Y,
 	uinput.BTN_TL,
 	uinput.BTN_TR,
+	uinput.BTN_TL2,
+	uinput.BTN_TR2,
+	uinput.BTN_SELECT,
+	uinput.BTN_START,
+	uinput.BTN_MODE,
 	uinput.BTN_THUMBL,
 	uinput.BTN_THUMBR,
-	uinput.BTN_DPAD_LEFT,
-	uinput.BTN_DPAD_RIGHT,
-	uinput.BTN_DPAD_UP,
-	uinput.BTN_DPAD_DOWN,
-	uinput.BTN_START,
-	uinput.BTN_SELECT,
-	uinput.BTN_MODE,
-	])
-########################################################
-# CONFIGURABLE REGION END - Don't touch anything below #
-########################################################
+	),
+	# name="Sony Interactive Entertainment Wireless Controller",
+	bustype=0x3,
+	# #vendor=0x054c, # doesnt work
+	# product=0x09CC,
+	# version=0xE,
+	)
 
-def pprint(obj):
-	import pprint
-	pprint.PrettyPrinter().pprint(obj)
 
-class x: pass
-
-command = x()
-command.CONNECT = 0
-command.DISCONNECT = 1
-command.KEYS = 2
 
 keynames = [
-	"A", "B", "Select", "Start", "Right", "Left", "Up", "Down",
+	"A", "B", "Select", "Start", None, None, None, None,
 	"R", "L", "X", "Y", None, None, "ZL", "ZR",
 	None, None, None, None, "Tap", None, None, None,
 	"CSRight", "CSLeft", "CSUp", "CSDown", "CRight", "CLeft", "CUp", "CDown",
 ]
-
-keys = x()
-keys.A       = 1<<0
-keys.B       = 1<<1
-keys.Select  = 1<<2
-keys.Start   = 1<<3
-keys.Right   = 1<<4
-keys.Left    = 1<<5
-keys.Up      = 1<<6
-keys.Down    = 1<<7
-keys.R       = 1<<8
-keys.L       = 1<<9
-keys.X       = 1<<10
-keys.Y       = 1<<11
-keys.ZL      = 1<<14 # (new 3DS only)
-keys.ZR      = 1<<15 # (new 3DS only)
-keys.Tap     = 1<<20 # Not actually provided by HID
-keys.CSRight = 1<<24 # c-stick (new 3DS only)
-keys.CSLeft  = 1<<25 # c-stick (new 3DS only)
-keys.CSUp    = 1<<26 # c-stick (new 3DS only)
-keys.CSDown  = 1<<27 # c-stick (new 3DS only)
-keys.CRight  = 1<<28 # circle pad
-keys.CLeft   = 1<<29 # circle pad
-keys.CUp     = 1<<30 # circle pad
-keys.CDown   = 1<<31 # circle pad
 	
 def press_key(key):
-	device.emit(key, 1)
+	device.emit(key, 1, syn=False)
         
 def release_key(key):
-	device.emit(key,0)
+	device.emit(key, 0, syn=False)
+
+def handle_shoulder_buttons(touchX, touchY):
+	if touchX > 0 and touchX < 160:	# left half
+		device.emit(uinput.BTN_TL2, 1, syn=False)
+	else: device.emit(uinput.BTN_TL2, 0, syn=False)
+
+	if touchX > 0 and touchX > 160:	# right half
+		device.emit(uinput.BTN_TR2, 1, syn=False)
+	else: device.emit(uinput.BTN_TR2, 0, syn=False)
+
+def handle_dpad(keys):
+	if keys & 1<<4:	# right
+		device.emit(uinput.ABS_HAT0X, 1, syn=False)
+	elif keys & 1<<5:	# left
+		device.emit(uinput.ABS_HAT0X, -1, syn=False)
+	else: device.emit(uinput.ABS_HAT0X, 0, syn=False)
+
+	if keys & 1<<6:	# up
+		device.emit(uinput.ABS_HAT0Y, -1, syn=False)
+	elif keys & 1<<7:	# down
+		device.emit(uinput.ABS_HAT0Y, 1, syn=False)
+	else: device.emit(uinput.ABS_HAT0Y, 0, syn=False)
+
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("", port))
 
 prevkeys = 0
 
-touch_start = 0
-touch_last_x = 0
-touch_last_y = 0
-
 while True:
-	rawdata, addr = sock.recvfrom(32)
+	rawdata, addr = sock.recvfrom(20)
 	rawdata = bytearray(rawdata)
 	
-	#print("received message", rawdata, "from", addr)
-	
+	#print("received message", rawdata, "from", addr)	
 	if rawdata[0]==command.CONNECT:
 		print("Connected to", addr)
 
@@ -142,25 +129,26 @@ while True:
 			"cstickX": fields[7],
 			"cstickY": fields[8],
 		}
+
 		
-		newkeys = data["keys"] & ~prevkeys
-		oldkeys = ~data["keys"] & prevkeys
-		prevkeys = data["keys"]
+		#print("Touch: ", fields[5], fields[6])
 		
+		newkeys 	= data["keys"] & ~prevkeys
+		oldkeys 	= ~data["keys"] & prevkeys
+		prevkeys 	= data["keys"]
+
 		for btnid in range(16):
 			if newkeys & (1<<btnid):
-				press_key(btn_map[keynames[btnid]])
+				if btnid < 4 or btnid > 7:
+					press_key(btn_map[keynames[btnid]])
 			if oldkeys & (1<<btnid):
-				release_key(btn_map[keynames[btnid]])
-		if newkeys & keys.Tap:
-			press_key(btn_map["Tap"])
-		if oldkeys & keys.Tap:
-			release_key(btn_map["Tap"])
+				if btnid < 4 or btnid > 7:
+					release_key(btn_map[keynames[btnid]])
+
+		handle_dpad(data["keys"])
+		handle_shoulder_buttons(data["touchX"], data["touchY"])
 
 		device.emit(uinput.ABS_X, data["circleX"], syn=False)
-		device.emit(uinput.ABS_Y, 0-data["circleY"])
+		device.emit(uinput.ABS_Y, 0-data["circleY"], syn=False)
 		device.emit(uinput.ABS_RX, data["cstickX"], syn=False)
 		device.emit(uinput.ABS_RY, data["cstickY"])
-	
-	elif rawdata[0]==command.SCREENSHOT:
-		pass # unused by both 3DS and PC applications

@@ -49,7 +49,7 @@ void startListening(void) {
 	
 	listener = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	
-	if(listener == INVALID_SOCKET) {
+    if (listener == INVALID_SOCKET) {
 		error("socket()");
 	}
 	
@@ -70,7 +70,7 @@ void startListening(void) {
 }
 
 void sendBuffer(int length) {
-	if(sendto(listener, (char *)&buffer, length, 0, (struct sockaddr *)&client_in, sizeof(struct sockaddr_in)) != length) {
+    if (sendto(listener, (char *)&buffer, length, 0, (struct sockaddr *)&client_in, sizeof(struct sockaddr_in)) != length) {
 		error("sendto");
 	}
 }

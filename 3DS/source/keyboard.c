@@ -77,8 +77,11 @@ inline void drawKeyboard(void) {
 	*/
 }
 
-int swkbd(char* out, const char* htext, const char* def, int maxlength) {
-    SwkbdState kb;
+int swkbd(char* out, const char* htext, const char* def, int maxlength)
+{
+    SwkbdState  kb;
+    SwkbdResult result;
+
     swkbdInit(&kb, SWKBD_TYPE_QWERTY, 2, maxlength);
     swkbdSetInitialText(&kb, def);
     swkbdSetHintText(&kb, htext);
@@ -86,8 +89,10 @@ int swkbd(char* out, const char* htext, const char* def, int maxlength) {
     swkbdSetButton(&kb, SWKBD_BUTTON_RIGHT, "Confirm", true);
     swkbdSetValidation(&kb, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
     swkbdInputText(&kb, out, maxlength);
-    SwkbdResult result = swkbdGetResult(&kb);
-    return (result==SWKBD_D1_CLICK1);
+
+    result = swkbdGetResult(&kb);
+
+    return (result == SWKBD_D1_CLICK1);
 }
 
 int swkbd_int(int* out, const char* htext, int def) {

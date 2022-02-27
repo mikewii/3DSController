@@ -8,7 +8,8 @@
 
 #include "input.h"
 
-int inputIP(void) {
+int inputIP(void)
+{
 	touchPosition touch;
 	hidTouchRead(&touch);
 	

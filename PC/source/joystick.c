@@ -14,7 +14,7 @@ BOOL updateJoystick(void) {
 	
 	iReport.bDevice = id;
 	
-	if(!UpdateVJD(iInterface, (PVOID)&iReport)) {
+    if (!UpdateVJD(iInterface, (PVOID)&iReport)) {
 		/*printf("vJoy device %d failed - try to enable device\n", iInterface);
 		printf("PRESS ENTER TO CONTINUE\n");
 		getchar();

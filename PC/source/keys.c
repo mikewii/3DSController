@@ -7,12 +7,12 @@ DEFINE_GUID(GUID_DEVINTERFACE_VJOY, 0x781EF630, 0x72B2, 0x11d2, 0xB8, 0x52, 0x00
 unsigned int lastKeys;
 unsigned int currentKeys;
 
-struct circlePad circlePad;
-struct cStick cStick;
-struct touch lastTouch;
-struct touch currentTouch;
+struct circlePosition circlePad;
+struct circlePosition cStick;
+struct touchPosition lastTouch;
+struct touchPosition currentTouch;
 
-inline unsigned int mapVirtualKey(unsigned int key) {
+unsigned int mapVirtualKey(unsigned int key) {
 	return MapVirtualKey(key, MAPVK_VK_TO_VSC);
 }
 

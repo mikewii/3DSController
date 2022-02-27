@@ -10,7 +10,5 @@ struct settings {
 extern struct settings settings;
 extern struct settings defaultSettings;
 
-extern Handle fileHandle;
-
 bool readSettings(void);
 void writeSettings(void);

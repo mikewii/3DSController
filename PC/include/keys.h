@@ -1,5 +1,5 @@
 #pragma once
-
+#include "types.h"
 #include <windows.h>
 #include <winable.h>
 #include <winuser.h>
@@ -79,28 +79,27 @@ struct keyMapping {
 	};
 };
 
-struct circlePad {
-	short x;
-	short y;
+/// Circle Pad position.
+struct circlePosition
+{
+    s16 x; ///< Pad X
+    s16 y; ///< Pad Y
 };
 
-struct cStick {
-	short x;
-	short y;
+/// Touch position.
+struct touchPosition
+{
+    u16 x; ///< Touch X
+    u16 y; ///< Touch Y
 };
 
-struct touch {
-	short x;
-	short y;
-};
+extern u32 lastKeys;
+extern u32 currentKeys;
 
-extern unsigned int lastKeys;
-extern unsigned int currentKeys;
-
-extern struct circlePad circlePad;
-extern struct cStick cStick;
-extern struct touch lastTouch;
-extern struct touch currentTouch;
+extern struct circlePosition circlePad;
+extern struct circlePosition cStick;
+extern struct touchPosition lastTouch;
+extern struct touchPosition currentTouch;
 
 inline unsigned int mapVirtualKey(unsigned int key);
 void simulateKeyNewpress(unsigned int key);

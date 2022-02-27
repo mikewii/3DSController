@@ -1,5 +1,3 @@
-#include <stddef.h>
-
 #include "keyboard.h"
 #include "wireless.h"
 
@@ -10,7 +8,8 @@ struct packet outBuf, rcvBuf;
 
 socklen_t sockaddr_in_sizePtr = (int)sizeof(struct sockaddr_in);
 
-bool openSocket(int port) {
+bool openSocket(int port)
+{
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	
 	saout.sin_family = sain.sin_family = AF_INET;
@@ -24,11 +23,13 @@ bool openSocket(int port) {
 	return true;
 }
 
-void sendBuf(int length) {
+void sendBuf(int length)
+{
 	sendto(sock, (char *)&outBuf, length, 0, (struct sockaddr *)&saout, sizeof(saout));
 }
 
-int receiveBuffer(int length) {
+int receiveBuffer(int length)
+{
 	return recvfrom(sock, (char *)&rcvBuf, length, 0, (struct sockaddr *)&sain, &sockaddr_in_sizePtr);
 }
 
@@ -40,7 +41,7 @@ void sendConnectionRequest(void)
     sendBuf(sizeof(struct packet));
 }
 
-void sendDisconnectRequest(void)
+void sendDisconnect(void)
 {
     outBuf.packetHeader.command = DISCONNECT;
 

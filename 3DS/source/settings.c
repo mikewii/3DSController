@@ -2,6 +2,8 @@
 #include <malloc.h>
 
 #include <3ds.h>
+#include <arpa/inet.h>
+#include "inet_pton.h"
 
 #include "wireless.h"
 
@@ -11,10 +13,8 @@ struct settings settings;
 
 struct settings defaultSettings = {
 	IPString: "",
-	port: DEFAULT_PORT,
+    port: DEFAULT_PORT,
 };
-
-Handle fileHandle;
 
 static bool getSetting(char *name, char *src, char *dest) {
 	char *start = strstr(src, name);
@@ -68,16 +68,16 @@ bool readSettings(void) {
 	
 	char setting[64] = { '\0' };
 	
-	if(getSetting("IP: ", buffer, settings.IPString)) {
-		//inet_pton(AF_INET, settings.IPString, &(saout.sin_addr));
-		inet_pton4(settings.IPString, (unsigned char *)&(saout.sin_addr));
+    if (getSetting("IP: ", buffer, settings.IPString)) {
+        //inet_pton(AF_INET, settings.IPString, &(saout.sin_addr));
+        inet_pton4(settings.IPString, (unsigned char *)&(saout.sin_addr));
 	}
 	else {
 		free(buffer);
 		return 0;
 	}
 	
-	if(getSetting("Port: ", buffer, setting)) {
+    if (getSetting("Port: ", buffer, setting)) {
 		sscanf(setting, "%d", &settings.port);
 	}
 	
@@ -86,8 +86,10 @@ bool readSettings(void) {
 	return 1;
 }
 
-void writeSettings(void) {
+void writeSettings(void)
+{
     FILE* f = fopen("3DSController.ini", "w");
+
     fprintf(f, "IP: %s\r\nPort: %d", settings.IPString, settings.port);
     fclose(f);
 }
