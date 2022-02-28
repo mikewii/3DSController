@@ -1,44 +1,44 @@
 #!/usr/bin/env python
-# Compatible with both Python 2.7.6 and 3.4.3
 
 from __future__ import print_function
 import socket, struct, time
 import uinput
 
-
+##########################
+##### configuration #####
 port = 8889
-class x: pass
 
-command = x()
-command.CONNECT = 1
-command.DISCONNECT = 2
-command.KEYS = 3
+# 0 = japanese:  X    1 = western:  Y
+#              Y   A              X   B
+#                B                  A
+layout_type = 1
 
-# /usr/include/linux/input-event-codes.h
-btn_map = {
-	"A": uinput.BTN_A,
-	"B": uinput.BTN_B,
-	"X": uinput.BTN_X,
-	"Y": uinput.BTN_Y,
-	"L": uinput.BTN_TL,
-	"R": uinput.BTN_TR,
-	"ZL": uinput.BTN_THUMBL,
-	"ZR": uinput.BTN_THUMBR,
-	"Start": uinput.BTN_START,
-	"Select": uinput.BTN_SELECT,
-}
+# 0 = ThumbL/ThumbR on touch, 1 = R1/R2 on touch
+touch_buttons = 0
 
+# 0 = vertical split: [1 2] 1 = horizontal split: [1 1] 2 = cross split: [1 2]
+#                     [1 2]                       [2 2]                  [2 1]
+layout_touch = 2
+
+# 0 = default, 1 = inverted
+touch_buttons_inverted = 0
+
+##### /configuration #####
+##########################
+
+##### controller with on/off shoulder buttons, no axes
 device = uinput.Device((
+	# left stick
 	uinput.ABS_X + (-159, 159, 0, 10),
 	uinput.ABS_Y + (-159, 159, 0, 10),	
+	
+	# right stick
 	uinput.ABS_RX + (-146, 146, 0, 16),
 	uinput.ABS_RY + (-146, 146, 0, 16),
 
+	# dpad
 	uinput.ABS_HAT0X + (-1, 1, 0, 0),
 	uinput.ABS_HAT0Y + (-1, 1, 0, 0),
-
-	# uinput.ABS_Z + (-1, 1, 0, 0),
-	# uinput.ABS_RZ + (-1, 1, 0, 0),
 
 	uinput.BTN_A,
 	uinput.BTN_B,
@@ -53,22 +53,43 @@ device = uinput.Device((
 	uinput.BTN_MODE,
 	uinput.BTN_THUMBL,
 	uinput.BTN_THUMBR,
-	),
-	# name="Sony Interactive Entertainment Wireless Controller",
-	bustype=0x3,
-	# #vendor=0x054c, # doesnt work
-	# product=0x09CC,
-	# version=0xE,
-	)
+	), bustype=0x1
+)
+##### /controller
 
+btn_map = {
+	"A": uinput.BTN_A,
+	"B": uinput.BTN_B,
+	"X": uinput.BTN_X,
+	"Y": uinput.BTN_Y,
+	"L": uinput.BTN_TL,
+	"R": uinput.BTN_TR,
+	"ZL": uinput.BTN_TL2,
+	"ZR": uinput.BTN_TR2,
+	"Start": uinput.BTN_START,
+	"Select": uinput.BTN_SELECT,
+	"Touch0": uinput.BTN_THUMBL,
+	"Touch1": uinput.BTN_THUMBR
+}
 
+keys = {
+	0:"A", 1:"B", 2:"Select", 3:"Start",
+	8:"R", 9:"L", 10:"X", 11:"Y",
+	14:"ZL", 15:"ZR",
+	# 32:"Touch0", 33:"Touch1"
+}
 
-keynames = [
-	"A", "B", "Select", "Start", None, None, None, None,
-	"R", "L", "X", "Y", None, None, "ZL", "ZR",
-	None, None, None, None, "Tap", None, None, None,
-	"CSRight", "CSLeft", "CSUp", "CSDown", "CRight", "CLeft", "CUp", "CDown",
-]
+def set_layout_type():
+	btn_map["A"] = uinput.BTN_B
+	btn_map["B"] = uinput.BTN_A
+	btn_map["X"] = uinput.BTN_Y
+	btn_map["Y"] = uinput.BTN_X
+
+def set_touch_buttons():
+	btn_map["ZL"] = uinput.BTN_THUMBL
+	btn_map["ZR"] = uinput.BTN_THUMBR
+	btn_map["Touch0"] = uinput.BTN_TL2
+	btn_map["Touch1"] = uinput.BTN_TR2
 	
 def press_key(key):
 	device.emit(key, 1, syn=False)
@@ -76,14 +97,63 @@ def press_key(key):
 def release_key(key):
 	device.emit(key, 0, syn=False)
 
-def handle_shoulder_buttons(touchX, touchY):
-	if touchX > 0 and touchX < 160:	# left half
-		device.emit(uinput.BTN_TL2, 1, syn=False)
-	else: device.emit(uinput.BTN_TL2, 0, syn=False)
+def handle_buttons(data):
+	for id in keys:
+		if data & 1<<id:
+			press_key(btn_map[keys[id]])
+		else: release_key(btn_map[keys[id]])
+		
 
-	if touchX > 0 and touchX > 160:	# right half
-		device.emit(uinput.BTN_TR2, 1, syn=False)
-	else: device.emit(uinput.BTN_TR2, 0, syn=False)
+########## touch ##########
+touch0 = "Touch0"
+touch1 = "Touch1"
+def touch_invert():
+	global touch0
+	global touch1
+	touch0 = "Touch1"
+	touch1 = "Touch0"
+
+def touch_vertical(touchX):
+	if touchX < 160: # left half
+		press_key(btn_map[touch0])
+	else: release_key(btn_map[touch0])
+	
+	if touchX > 160: # right half
+		press_key(btn_map[touch1])
+	else: release_key(btn_map[touch1])
+
+def touch_horizontal(touchY):
+	if touchY < 120: # top half
+		press_key(btn_map[touch0])
+	else: release_key(btn_map[touch0])
+	
+	if touchY > 120: # bottom half
+		press_key(btn_map[touch1])
+	else: release_key(btn_map[touch1])
+
+def touch_cross(touchX, touchY):
+	if touchX < 160 and touchY < 120: # top left
+		press_key(btn_map[touch0])
+	elif touchX > 160 and touchY > 120: # bottom right
+		press_key(btn_map[touch0])
+	else: release_key(btn_map[touch0])
+
+	if touchX > 160 and touchY < 120: # top right
+		press_key(btn_map[touch1])
+	elif touchX < 160 and touchY > 120: # bottom left
+		press_key(btn_map[touch1])
+	else: release_key(btn_map[touch1])
+	
+
+def handle_touch_buttons(touchX, touchY):
+	if touchX > 0 and touchY > 0:
+		if layout_touch == 0: touch_vertical(touchX)
+		elif layout_touch == 1: touch_horizontal(touchY)
+		elif layout_touch == 2: touch_cross(touchX, touchY)
+	else:
+		release_key(btn_map[touch0])
+		release_key(btn_map[touch1])
+########## /touch ##########
 
 def handle_dpad(keys):
 	if keys & 1<<4:	# right
@@ -98,57 +168,43 @@ def handle_dpad(keys):
 		device.emit(uinput.ABS_HAT0Y, 1, syn=False)
 	else: device.emit(uinput.ABS_HAT0Y, 0, syn=False)
 
+if __name__ == "__main__":
+	# configure controller:
+	if layout_type == 1: set_layout_type()
+	if layout_touch == 1: set_touch_buttons()
+	if touch_buttons_inverted == 1: touch_invert()
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(("", port))
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.bind(("", port))
 
-prevkeys = 0
+	print("Running on port: %d" % port)
 
-while True:
-	rawdata, addr = sock.recvfrom(20)
-	rawdata = bytearray(rawdata)
-	
-	#print("received message", rawdata, "from", addr)	
-	if rawdata[0]==command.CONNECT:
-		print("Connected to", addr)
-
-	elif rawdata[0]==command.DISCONNECT:
-		print("Disconnected from", addr)
-	
-	elif rawdata[0]==command.KEYS:
-		fields = struct.unpack("<BBxxIhhHHhh", rawdata)
+	while True:
+		rawdata, addr = sock.recvfrom(20)
+		rawdata = bytearray(rawdata)
 		
-		data = {
-			"command": fields[0],
-			"keyboardActive": fields[1],
-			"keys": fields[2],
-			"circleX": fields[3],
-			"circleY": fields[4],
-			"touchX": fields[5],
-			"touchY": fields[6],
-			"cstickX": fields[7],
-			"cstickY": fields[8],
-		}
-
+		#print("received message", rawdata, "from", addr)	
 		
-		#print("Touch: ", fields[5], fields[6])
-		
-		newkeys 	= data["keys"] & ~prevkeys
-		oldkeys 	= ~data["keys"] & prevkeys
-		prevkeys 	= data["keys"]
+		if rawdata[0] == 3:
+			fields = struct.unpack("<BBxxIhhHHhh", rawdata)
+			
+			data = {
+				"command": fields[0],
+				"keyboardActive": fields[1],
+				"keys": fields[2],
+				"circleX": fields[3],
+				"circleY": fields[4],
+				"touchX": fields[5],
+				"touchY": fields[6],
+				"cstickX": fields[7],
+				"cstickY": fields[8],
+			}
+			
+			handle_buttons(data["keys"])
+			handle_dpad(data["keys"])
+			handle_touch_buttons(data["touchX"], data["touchY"])
 
-		for btnid in range(16):
-			if newkeys & (1<<btnid):
-				if btnid < 4 or btnid > 7:
-					press_key(btn_map[keynames[btnid]])
-			if oldkeys & (1<<btnid):
-				if btnid < 4 or btnid > 7:
-					release_key(btn_map[keynames[btnid]])
-
-		handle_dpad(data["keys"])
-		handle_shoulder_buttons(data["touchX"], data["touchY"])
-
-		device.emit(uinput.ABS_X, data["circleX"], syn=False)
-		device.emit(uinput.ABS_Y, 0-data["circleY"], syn=False)
-		device.emit(uinput.ABS_RX, data["cstickX"], syn=False)
-		device.emit(uinput.ABS_RY, data["cstickY"])
+			device.emit(uinput.ABS_X, data["circleX"], syn=False)
+			device.emit(uinput.ABS_Y, 0-data["circleY"], syn=False)
+			device.emit(uinput.ABS_RX, data["cstickX"], syn=False)
+			device.emit(uinput.ABS_RY, data["cstickY"])
