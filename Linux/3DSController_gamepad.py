@@ -6,12 +6,13 @@ import uinput
 
 ##########################
 ##### configuration #####
-port = 8889
+PORT = 8889
+TIMEOUT = 0.05 # 50ms
 
-# 0 = japanese:  X    1 = western:  Y
-#              Y   A              X   B
-#                B                  A
-layout_type = 1
+# 0 = japanese:  X    1 = western:  Y    2 = western invert A B:   Y
+#              Y   A              X   B                          X   A
+#                B                  A                              B
+layout_type = 2
 
 # 0 = ThumbL/ThumbR on touch, 1 = R1/R2 on touch
 touch_buttons = 0
@@ -53,7 +54,7 @@ device = uinput.Device((
 	uinput.BTN_MODE,
 	uinput.BTN_THUMBL,
 	uinput.BTN_THUMBR,
-	), bustype=0x1
+	), bustype=0x3
 )
 ##### /controller
 
@@ -79,17 +80,22 @@ keys = {
 	# 32:"Touch0", 33:"Touch1"
 }
 
-def set_layout_type():
-	btn_map["A"] = uinput.BTN_B
-	btn_map["B"] = uinput.BTN_A
-	btn_map["X"] = uinput.BTN_Y
-	btn_map["Y"] = uinput.BTN_X
+def set_layout_type(type):
+	if type == 1: # western
+		btn_map["A"] = uinput.BTN_B
+		btn_map["B"] = uinput.BTN_A
+		btn_map["X"] = uinput.BTN_Y
+		btn_map["Y"] = uinput.BTN_X
+	elif type == 2: # western invert A B 
+		btn_map["X"] = uinput.BTN_Y
+		btn_map["Y"] = uinput.BTN_X
 
 def set_touch_buttons():
-	btn_map["ZL"] = uinput.BTN_THUMBL
-	btn_map["ZR"] = uinput.BTN_THUMBR
-	btn_map["Touch0"] = uinput.BTN_TL2
-	btn_map["Touch1"] = uinput.BTN_TR2
+	if touch_buttons == 1:
+		btn_map["ZL"] = uinput.BTN_THUMBL
+		btn_map["ZR"] = uinput.BTN_THUMBR
+		btn_map["Touch0"] = uinput.BTN_TL2
+		btn_map["Touch1"] = uinput.BTN_TR2
 	
 def press_key(key):
 	device.emit(key, 1, syn=False)
@@ -107,11 +113,13 @@ def handle_buttons(data):
 ########## touch ##########
 touch0 = "Touch0"
 touch1 = "Touch1"
-def touch_invert():
+def set_touch_invert():
 	global touch0
 	global touch1
-	touch0 = "Touch1"
-	touch1 = "Touch0"
+	
+	if touch_buttons_inverted == 1:
+		touch0 = "Touch1"
+		touch1 = "Touch0"
 
 def touch_vertical(touchX):
 	if touchX < 160: # left half
@@ -168,19 +176,52 @@ def handle_dpad(keys):
 		device.emit(uinput.ABS_HAT0Y, 1, syn=False)
 	else: device.emit(uinput.ABS_HAT0Y, 0, syn=False)
 
+def panic():
+	device.emit(uinput.BTN_A, 0, syn=False)
+	device.emit(uinput.BTN_B, 0, syn=False)
+	device.emit(uinput.BTN_X, 0, syn=False)
+	device.emit(uinput.BTN_Y, 0, syn=False)
+	device.emit(uinput.BTN_TL, 0, syn=False)
+	device.emit(uinput.BTN_TR, 0, syn=False)
+	device.emit(uinput.BTN_TL2, 0, syn=False)
+	device.emit(uinput.BTN_TR2, 0, syn=False)
+	device.emit(uinput.BTN_SELECT, 0, syn=False)
+	device.emit(uinput.BTN_START, 0, syn=False)
+	device.emit(uinput.BTN_MODE, 0, syn=False)
+	device.emit(uinput.BTN_THUMBL, 0, syn=False)
+	device.emit(uinput.BTN_THUMBR, 0, syn=False)
+	device.emit(uinput.ABS_HAT0X, 0, syn=False)
+	device.emit(uinput.ABS_HAT0Y, 0, syn=False)
+	device.emit(uinput.ABS_X, 0, syn=False)
+	device.emit(uinput.ABS_Y, 0, syn=False)
+	device.emit(uinput.ABS_RX, 0, syn=False)
+	device.emit(uinput.ABS_RY, 0)
+
+panicCount = 0
+def panicPrint():
+	global panicCount
+	panicCount += 1
+	print("Connection timeout count %d" % panicCount, end='\r')
+
 if __name__ == "__main__":
-	# configure controller:
-	if layout_type == 1: set_layout_type()
-	if layout_touch == 1: set_touch_buttons()
-	if touch_buttons_inverted == 1: touch_invert()
+	set_layout_type(layout_type)
+	set_touch_buttons()
+	set_touch_invert()
 
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.bind(("", port))
+	sock.bind(("", PORT))
+	sock.settimeout(TIMEOUT)
 
-	print("Running on port: %d" % port)
+	print("Running on port: %d" % PORT)
 
 	while True:
-		rawdata, addr = sock.recvfrom(20)
+		try:
+			rawdata, addr = sock.recvfrom(20)
+		except Exception as e:
+			panic()
+			panicPrint()
+			continue
+		
 		rawdata = bytearray(rawdata)
 		
 		#print("received message", rawdata, "from", addr)	
