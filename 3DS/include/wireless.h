@@ -20,21 +20,11 @@ enum NET_COMMANDS {
     KEYS
 };
 
-struct packet { // BBxxIhhHHhh
-    struct {
-        u8 command;
-        u8 keyboardActive;
-        u8 padding[2];
-    } packetHeader;
-
-    // KEYS
-    struct {
-        u32 keys;
-
-        circlePosition  circlePad;
-        touchPosition   touch;
-        circlePosition  cStick;
-    } keysPacket;
+struct packet { // IhhhhHH
+    u32             keys;
+    circlePosition  leftStick;
+    circlePosition  rightStick;
+    touchPosition   touch;
 };
 
 extern int sock;
@@ -46,6 +36,4 @@ extern socklen_t sockaddr_in_sizePtr;
 bool    openSocket(int port);
 void    sendBuf(int length);
 int     receiveBuffer(int length);
-void    sendConnectionRequest(void);
-void    sendDisconnect(void);
-void    sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick);
+void    sendKeys(const u32 keys, const circlePosition leftStick, const circlePosition rightStick, const touchPosition touch);

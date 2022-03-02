@@ -33,30 +33,12 @@ int receiveBuffer(int length)
 	return recvfrom(sock, (char *)&rcvBuf, length, 0, (struct sockaddr *)&sain, &sockaddr_in_sizePtr);
 }
 
-void sendConnectionRequest(void)
+void sendKeys(const u32 _keys, const circlePosition _leftStick, const circlePosition _rightStick, const touchPosition _touch)
 {
-    outBuf.packetHeader.command = CONNECT;
-    outBuf.packetHeader.keyboardActive = keyboardActive;
-
-    sendBuf(sizeof(struct packet));
-}
-
-void sendDisconnect(void)
-{
-    outBuf.packetHeader.command = DISCONNECT;
-
-    sendBuf(sizeof(struct packet));
-}
-
-void sendKeys(unsigned int keys, circlePosition circlePad, touchPosition touch, circlePosition cStick)
-{
-    outBuf.packetHeader.command = KEYS;
-    outBuf.packetHeader.keyboardActive = keyboardActive;
-
-    outBuf.keysPacket.keys = keys;
-    outBuf.keysPacket.circlePad = circlePad;
-    outBuf.keysPacket.touch = touch;
-    outBuf.keysPacket.cStick = cStick;
+    outBuf.keys = _keys;
+    outBuf.leftStick = _leftStick;
+    outBuf.rightStick = _rightStick;
+    outBuf.touch = _touch;
 
     sendBuf(sizeof(struct packet));
 }

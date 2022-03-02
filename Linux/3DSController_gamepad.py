@@ -216,36 +216,31 @@ if __name__ == "__main__":
 
 	while True:
 		try:
-			rawdata, addr = sock.recvfrom(20)
+			rawdata, addr = sock.recvfrom(16)
 		except Exception as e:
 			panic()
 			panicPrint()
 			continue
 		
 		rawdata = bytearray(rawdata)
-		
-		#print("received message", rawdata, "from", addr)	
-		
-		if rawdata[0] == 3:
-			fields = struct.unpack("<BBxxIhhHHhh", rawdata)
+		fields = struct.unpack("<IhhhhHH", rawdata)
 			
-			data = {
-				"command": fields[0],
-				"keyboardActive": fields[1],
-				"keys": fields[2],
-				"circleX": fields[3],
-				"circleY": fields[4],
-				"touchX": fields[5],
-				"touchY": fields[6],
-				"cstickX": fields[7],
-				"cstickY": fields[8],
-			}
-			
-			handle_buttons(data["keys"])
-			handle_dpad(data["keys"])
-			handle_touch_buttons(data["touchX"], data["touchY"])
+		data = {
+			"keys": fields[0],
+			"lelfStickX": fields[1],
+			"lelfStickY": fields[2],
+			"rightStickX": fields[3],
+			"rightStickY": fields[4],
+			"touchX": fields[5],
+			"touchY": fields[6],
+		}
+		
+		handle_buttons(data["keys"])
+		handle_dpad(data["keys"])
+		handle_touch_buttons(data["touchX"], data["touchY"])
 
-			device.emit(uinput.ABS_X, data["circleX"], syn=False)
-			device.emit(uinput.ABS_Y, 0-data["circleY"], syn=False)
-			device.emit(uinput.ABS_RX, data["cstickX"], syn=False)
-			device.emit(uinput.ABS_RY, data["cstickY"])
+		device.emit(uinput.ABS_X, data["lelfStickX"], syn=False)
+		device.emit(uinput.ABS_Y, 0-data["lelfStickY"], syn=False)
+		device.emit(uinput.ABS_RX, data["rightStickX"], syn=False)
+		device.emit(uinput.ABS_RY, data["rightStickY"])
+			

@@ -124,7 +124,6 @@ int main(void)
 	gfxSwapBuffers();
 	
 	openSocket(settings.port);
-	sendConnectionRequest();
 	
 	clearScreen();
 	gfxFlushBuffers();
@@ -139,16 +138,16 @@ int main(void)
 		irrstScanInput();
 		
         u32             kHeld = hidKeysHeld();
-        circlePosition  circlePad;
-        circlePosition  cStick;
+        circlePosition  leftStick;
+        circlePosition  rightStick;
         touchPosition   touch;
 
-		hidCstickRead(&cStick);
-		hidCircleRead(&circlePad);
+        hidCstickRead(&rightStick);
+        hidCircleRead(&leftStick);
 		touchRead(&touch);
 		
-		sendKeys(kHeld, circlePad, touch, cStick);
-		
+        sendKeys(kHeld, leftStick, rightStick, touch);
+
         if ((kHeld & KEY_START) && (kHeld & KEY_SELECT)) longjmp(exitJmp, 1);
 	}
 	
