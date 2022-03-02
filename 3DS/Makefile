@@ -40,9 +40,10 @@ ICON			:=	cxi/icon48x48.png
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
+G		:=	#-ggdb
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
-CFLAGS	:=	-g -Wall -O2 -mword-relocations \
+CFLAGS	:=	$(G) -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffast-math \
 			-fms-extensions \
 			$(ARCH)
@@ -51,8 +52,8 @@ CFLAGS	+=	$(INCLUDE) -DARM11 -D__3DS__
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
-ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+ASFLAGS	:=	$(G) $(ARCH)
+LDFLAGS	=	-specs=3dsx.specs $(G) $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:= -lctru -lm
 

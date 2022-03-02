@@ -37,6 +37,9 @@ int main(void)
 	acInit();
 	gfxInitDefault();
     gspLcdInit();
+    fsInit();
+    socInit((u32 *)memalign(0x1000, 0x100000), 0x100000);
+
 	
 	gfxSetDoubleBuffering(GFX_TOP, false);
 	gfxSetDoubleBuffering(GFX_BOTTOM, false);
@@ -50,14 +53,11 @@ int main(void)
 	gfxFlushBuffers();
 	gfxSwapBuffers();
 	
-	fsInit();
-	
 	clearScreen();
 	drawString(10, 10, "Initialising SOC...");
 	gfxFlushBuffers();
 	gfxSwapBuffers();
 	
-	socInit((u32 *)memalign(0x1000, 0x100000), 0x100000);
 	
     while (aptMainLoop()) { /* Wait for WiFi; break when WiFiStatus is truthy */
 		u32 wifiStatus = 0;
@@ -103,8 +103,8 @@ int main(void)
             inet_pton4(settings.IPString, (unsigned char *)&(saout.sin_addr));
             writeSettings();
         }
-        else if (kDown & KEY_START) break;
         else if ((kDown & KEY_START) && (kDown & KEY_SELECT)) longjmp(exitJmp, 1);
+        else if (kDown & KEY_START) break;
         
         clearScreen();
 
@@ -130,8 +130,9 @@ int main(void)
 	gfxFlushBuffers();
 	gfxSwapBuffers();
 	
-    // GSPLCD_PowerOffAllBacklights(); // this shit doesnt work
+    // GSPLCD_PowerOffAllBacklights();  // this shit doesnt work
     GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTH);
+    aptSetHomeAllowed(false); // because hang in aptJumpToHomeMenu, turning lcd back on doesnt help
 
     while (aptMainLoop()) {
 		hidScanInput();
@@ -161,10 +162,8 @@ int main(void)
         break;
     }
 
-	SOCU_ShutdownSockets();
-	
+    socExit();
 	fsExit();
-	
     gspLcdExit();
 	gfxExit();
 	acExit();
