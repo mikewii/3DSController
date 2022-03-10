@@ -12,7 +12,7 @@ TIMEOUT = 0.05 # 50ms
 # 0 = japanese:  X    1 = western:  Y    2 = western invert A B:   Y
 #              Y   A              X   B                          X   A
 #                B                  A                              B
-layout_type = 2
+layout_type = 0
 
 # 0 = ThumbL/ThumbR on touch, 1 = R1/R2 on touch
 touch_buttons = 0
@@ -219,7 +219,7 @@ if __name__ == "__main__":
 			rawdata, addr = sock.recvfrom(16)
 		except Exception as e:
 			panic()
-			panicPrint()
+			#panicPrint()
 			continue
 		
 		rawdata = bytearray(rawdata)
