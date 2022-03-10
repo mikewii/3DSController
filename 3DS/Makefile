@@ -28,19 +28,19 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	3DSController
 BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	src
 DATA		:=	data
-INCLUDES	:=	include
+INCLUDES	:=	src
 
 APP_TITLE		:=	3DS Controller
 APP_DESCRIPTION	:=
-APP_AUTHOR		:=	CTurt
+APP_AUTHOR		:=	mikewii
 ICON			:=	cxi/icon48x48.png
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-G		:=	#-ggdb
+G		:=	-ggdb
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
 CFLAGS	:=	$(G) -Wall -O2 -mword-relocations \

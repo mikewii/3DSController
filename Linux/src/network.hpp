@@ -20,7 +20,6 @@ private:
     int         sockfd = 0;
     sockaddr_in server_addr, client_addr;
 
-    s16         port = 8889;
     timeval     timeout = {.tv_sec = 0, .tv_usec = 50000}; // 50ms
 
     const bool  configure_socket(void) const;

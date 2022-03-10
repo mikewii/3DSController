@@ -39,6 +39,23 @@ enum : u32 {
     N3DS_KEY_RIGHT = N3DS_KEY_DRIGHT | N3DS_KEY_CPAD_RIGHT, ///< D-Pad Right or Circle Pad Right
 };
 
+enum lite : u16 {
+    N3DS_LITE_KEY_A       = BIT(0),
+    N3DS_LITE_KEY_B       = BIT(1),
+    N3DS_LITE_KEY_SELECT  = BIT(2),
+    N3DS_LITE_KEY_START   = BIT(3),
+    N3DS_LITE_KEY_DRIGHT  = BIT(4),
+    N3DS_LITE_KEY_DLEFT   = BIT(5),
+    N3DS_LITE_KEY_DUP     = BIT(6),
+    N3DS_LITE_KEY_DDOWN   = BIT(7),
+    N3DS_LITE_KEY_R       = BIT(8),
+    N3DS_LITE_KEY_L       = BIT(9),
+    N3DS_LITE_KEY_X       = BIT(10),
+    N3DS_LITE_KEY_Y       = BIT(11),
+    N3DS_LITE_KEY_ZL      = BIT(12),
+    N3DS_LITE_KEY_ZR      = BIT(13)
+};
+
 static const u32 device_axes[] =
 {
     ABS_X, ABS_Y, ABS_RX, ABS_RY, ABS_HAT0X, ABS_HAT0Y
@@ -50,19 +67,7 @@ static const u32 device_buttons[] =
     BTN_SELECT, BTN_START, BTN_MODE, BTN_THUMBL, BTN_THUMBR
 };
 
-
-class Normalize {
-public:
-    Normalize();
-
-    int lstick_x_step;
-    int lstick_y_step;
-
-    int rstick_x_step;
-    int rstick_y_step;
-};
-
-class Controller : public Normalize
+class Controller
 {
 public:
     enum {
@@ -81,6 +86,10 @@ public:
     void process(void);
     void panic(void);
 
+    u32         keys;
+    T16<u16>    touch;
+    T16<s16>    lstick, rstick;
+
 private:
     static std::map<u32, u32> buttons;
     static u32 touch_button0, touch_button1;
@@ -91,11 +100,11 @@ private:
     uinput_setup    usetup;
     int             fd;
 
-
     void process_keys(void) const;
     void process_dpad(void) const;
     void process_stick(bool right = false) const;
     void process_touch(void) const;
+    void clear(void);
 
     void process_touch_vertical(void) const;
     void process_touch_horizontal(void) const;

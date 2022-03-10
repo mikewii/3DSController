@@ -6,7 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 
-Packet packet;
+char buffer[16];
+int  buffer_size = 0;
 
 Network::Network()
 {
@@ -23,7 +24,7 @@ Network::Network()
 
     this->server_addr.sin_family = AF_INET;
     this->server_addr.sin_addr.s_addr = INADDR_ANY;
-    this->server_addr.sin_port = htons(this->port);
+    this->server_addr.sin_port = htons(settings.port);
 
     if (bind(this->sockfd, reinterpret_cast<__CONST_SOCKADDR_ARG>(&this->server_addr), sizeof(this->server_addr)) < 0) {
         Log::print("bind");
@@ -49,17 +50,17 @@ Network::~Network()
         this->sockfd = 0;
     }
 }
-
+bool yes;
 const bool Network::receive(void)
 {
-    socklen_t client_addr_len = sizeof(this->client_addr);
-    int received;
+    socklen_t   client_addr_len = sizeof(this->client_addr);
+    int         received;
 
     received = recvfrom
             (
                 sockfd,
-                packet.data(),
-                packet.size(),
+                buffer,
+                buffer_size,
                 MSG_WAITALL,
                 reinterpret_cast<__SOCKADDR_ARG>(&this->client_addr),
                 &client_addr_len
@@ -67,16 +68,23 @@ const bool Network::receive(void)
 
     // TODO: any need to deal with timeout errors?
 
-    return received == packet.size();
+    return yes = received == buffer_size;
 }
 
 void Network::print_packet(void) const
 {
-    printf("keys        : %d\n", packet.keys);
-    printf("left  stick : %d %d\n", packet.leftStick.x, packet.leftStick.y);
-    printf("right stick : %d %d\n", packet.rightStick.x, packet.rightStick.y);
-    printf("touch       : %hu %hu\n", packet.touch.x, packet.touch.y);
-    fflush(stdout);
+    Packet_lite_v2& packet = reinterpret_cast<Packet_lite_v2&>(buffer);
+
+    if (yes) {
+        printf("keys        : %d\n", packet.keys);
+        printf("left  stick : %d %d\n", packet.lx, packet.ly);
+        printf("right stick : %d %d\n", packet.rx, packet.ry);
+        printf("touch       : %d %d\n", packet.touch_x, packet.touch_y);
+        fflush(stdout);
+    } else {
+        printf("nothing received!\n");
+        fflush(stdout);
+    }
 }
 
 const bool Network::configure_socket(void) const

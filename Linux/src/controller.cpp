@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits>
 
 
 struct axes {
@@ -56,16 +57,6 @@ std::map<u32, u32> Controller::buttons =
 
 u32 Controller::touch_button0 = BTN_THUMBL;
 u32 Controller::touch_button1 = BTN_THUMBR;
-
-#include <limits>
-Normalize::Normalize()
-{
-    this->lstick_x_step = std::numeric_limits<s16>().max() / controller_axes.left_x.max;
-    this->lstick_y_step = this->lstick_x_step;
-
-    this->rstick_x_step = std::numeric_limits<s16>().max() / controller_axes.right_x.max;
-    this->rstick_y_step = this->rstick_x_step;
-}
 
 Controller::Controller()
 {
@@ -126,10 +117,12 @@ void Controller::configure(void)
 void Controller::process(void)
 {
     this->process_keys();
+    this->process_touch();
     this->process_dpad();
     this->process_stick();
     this->process_stick(true);
-    this->process_touch();
+
+    this->clear();
 }
 
 void Controller::panic(void)
@@ -155,7 +148,7 @@ void Controller::panic(void)
 void Controller::process_keys(void) const
 {
     for (const auto& key : this->buttons) {
-        const int value = key.first & packet.keys ? 1 : 0;
+        const int value = key.first & this->keys ? 1 : 0;
 
         this->_emit(EV_KEY, key.second, value);
         this->sync();
@@ -164,16 +157,16 @@ void Controller::process_keys(void) const
 
 void Controller::process_dpad(void) const
 {
-    if (N3DS_KEY_DLEFT & packet.keys)
+    if (N3DS_KEY_DLEFT & this->keys)
         this->_emit(EV_ABS, ABS_HAT0X, -1);
-    else if (N3DS_KEY_DRIGHT & packet.keys)
+    else if (N3DS_KEY_DRIGHT & this->keys)
         this->_emit(EV_ABS, ABS_HAT0X, 1);
     else
         this->_emit(EV_ABS, ABS_HAT0X, 0);
 
-    if (N3DS_KEY_DUP & packet.keys)
+    if (N3DS_KEY_DUP & this->keys)
         this->_emit(EV_ABS, ABS_HAT0Y, -1);
-    else if (N3DS_KEY_DDOWN & packet.keys)
+    else if (N3DS_KEY_DDOWN & this->keys)
         this->_emit(EV_ABS, ABS_HAT0Y, 1);
     else
         this->_emit(EV_ABS, ABS_HAT0Y, 0);
@@ -185,30 +178,22 @@ void Controller::process_stick(bool right) const
 {
     const auto& cstick_x = right ? controller_axes.right_x : controller_axes.left_x;
     const auto& cstick_y = right ? controller_axes.right_y : controller_axes.left_y;
-    const auto& normalize_x = right ? Normalize::rstick_x_step : Normalize::lstick_x_step;
-    const auto& normalize_y = right ? Normalize::rstick_y_step : Normalize::lstick_y_step;
 
-    const auto& x = right ? packet.rightStick.x : packet.leftStick.x;
-    const auto& y = right ? -packet.rightStick.y : -packet.leftStick.y;
+    const auto& x = right ? this->rstick.x : this->lstick.x;
+    const auto& y = right ? -this->rstick.y : -this->lstick.y;
 
     // X
-    if (x < -cstick_x.deathzone || x > cstick_x.deathzone)
-        this->_emit(EV_ABS, cstick_x.key, x * normalize_x);
-    else
-        this->_emit(EV_ABS, cstick_x.key, 0);
+    this->_emit(EV_ABS, cstick_x.key, x);
 
     // Y
-    if (y < -cstick_y.deathzone || y > cstick_y.deathzone)
-        this->_emit(EV_ABS, cstick_y.key, y * normalize_y);
-    else
-        this->_emit(EV_ABS, cstick_y.key, 0);
+    this->_emit(EV_ABS, cstick_y.key, y);
 
     this->sync();
 }
 
 void Controller::process_touch(void) const
 {
-    if (packet.touch.x > 0 || packet.touch.y > 0) {
+    if (this->touch.x > 0 || this->touch.y > 0) {
         switch(this->touch_type){
         case TOUCH_VERTICAL: this->process_touch_vertical(); break;
         case TOUCH_HORIZONTAL: this->process_touch_horizontal(); break;
@@ -219,6 +204,17 @@ void Controller::process_touch(void) const
         this->_emit(EV_KEY, this->touch_button0, 0);
         this->_emit(EV_KEY, this->touch_button1, 0);
     }
+}
+
+void Controller::clear(void)
+{
+    this->keys = 0;
+    this->touch.x = 0;
+    this->touch.y = 0;
+    this->lstick.x = 0;
+    this->lstick.y = 0;
+    this->rstick.x = 0;
+    this->rstick.y = 0;
 }
 
 void Controller::sync(void) const
