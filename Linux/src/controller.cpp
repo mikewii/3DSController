@@ -41,6 +41,20 @@ static const axes controller_axes =
     {ABS_HAT0Y, -1, 1, 0}
 };
 
+const std::map<const char*, const std::pair<const int, const int>> Controller::buttons_setting =
+{
+    {"A",       {N3DS_KEY_A, BTN_A}},
+    {"B",       {N3DS_KEY_B, BTN_B}},
+    {"X",       {N3DS_KEY_X, BTN_X}},
+    {"Y",       {N3DS_KEY_Y, BTN_Y}},
+    {"L",       {N3DS_KEY_L, BTN_TL}},
+    {"R",       {N3DS_KEY_R, BTN_TR}},
+    {"ZL",      {N3DS_KEY_ZL, BTN_TL2}},
+    {"ZR",      {N3DS_KEY_ZR, BTN_TR2}},
+    {"START",   {N3DS_KEY_START, BTN_START}},
+    {"SELECT",  {N3DS_KEY_SELECT, BTN_SELECT}}
+};
+
 std::map<u32, u32> Controller::buttons =
 {
     {N3DS_KEY_A,        BTN_A},
@@ -143,6 +157,50 @@ void Controller::panic(void)
     this->_emit(EV_ABS, controller_axes.dpad_y.key, 0);
 
     this->sync();
+}
+
+bool Controller::replace_button(const std::string &left, const std::string &right) const
+{
+    bool res = true;
+    int id_3ds = -1, id_uinput = -1;
+
+    if (left.size() > 2 || right.size() > 2)
+        return false;
+
+
+    auto validate = [&](const std::string& str) -> bool
+    {
+        for (const auto& key : Controller::buttons_setting)
+            if (str.find(key.first) != std::string::npos)
+                return true;
+        return false;
+    };
+
+    res &= validate(left);
+    res &= validate(right);
+
+    if (res) {
+        for (const auto& key : Controller::buttons_setting) {
+            if (id_3ds == -1 && left.find(key.first) != std::string::npos) {
+                id_3ds = key.second.first;
+            }
+
+            if (id_uinput == -1 && right.find(key.first) != std::string::npos) {
+                id_uinput = key.second.second;
+            }
+        }
+
+        this->replace_button(id_3ds, id_uinput);
+    }
+
+    return res;
+}
+
+void Controller::replace_button(int id_3ds, int id_uinput) const
+{
+    for (auto& btn : Controller::buttons)
+        if (btn.first == id_3ds)
+            btn.second = id_uinput;
 }
 
 void Controller::process_keys(void) const

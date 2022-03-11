@@ -1,4 +1,7 @@
 #include "application.hpp"
+#include <filesystem>
+#include <fstream>
+#include <string.h>
 
 Settings settings =
 {
@@ -80,4 +83,55 @@ void Application::preprocess(void)
         break;
     }
     }
+}
+
+void Application::write_settings(void) const
+{
+    std::filesystem::path   fullpath(std::getenv("HOME"));
+    fullpath.append(this->settings_filename);
+
+    if (!std::filesystem::exists(fullpath)) {
+        std::fstream file(fullpath, std::ios::out);
+        static const char* message =
+                "# Custom controller map\n" \
+                "# [left right] left is 3ds button, right is expected button \n" \
+                "# example:\n" \
+                "# x y\n";
+
+        if (file.is_open()) {
+            file.write(message, strlen(message));
+            file.close();
+        }
+    }
+}
+
+const bool Application::read_settings(void) const
+{
+#define BUFFER_SIZE 1024
+    bool                    res = true;
+    char                    buffer[BUFFER_SIZE];
+    std::filesystem::path   fullpath(std::getenv("HOME"));
+    std::fstream            file(fullpath.append(this->settings_filename), std::ios::in);
+
+    if (file.is_open()) {
+        while(file.getline(buffer, BUFFER_SIZE)) {
+            std::string line(buffer);
+            std::string left, right;
+
+            std::transform(line.begin(), line.end(), line.begin(), ::toupper);
+
+            if (line.find_first_of("#") != std::string::npos)
+                continue;
+
+            auto space_pos = line.find_first_of(' ');
+
+            left = line.substr(0, space_pos);
+            right = line.substr(space_pos + 1);
+
+            res &= Controller::replace_button(left, right);
+        }
+
+        file.close();
+        return res;
+    } else return false;
 }

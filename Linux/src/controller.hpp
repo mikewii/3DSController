@@ -4,6 +4,7 @@
 #include <linux/uinput.h>
 #include <queue>
 #include <map>
+#include <string>
 
 #define BIT(n) (1U<<(n))
 
@@ -56,6 +57,8 @@ enum lite : u16 {
     N3DS_LITE_KEY_ZR      = BIT(13)
 };
 
+
+
 static const u32 device_axes[] =
 {
     ABS_X, ABS_Y, ABS_RX, ABS_RY, ABS_HAT0X, ABS_HAT0Y
@@ -86,14 +89,17 @@ public:
     void process(void);
     void panic(void);
 
+    bool replace_button(const std::string& left, const std::string& right) const;
+    void replace_button(int id_3ds, int id_uinput) const;
+
     u32         keys;
     T16<u16>    touch;
     T16<s16>    lstick, rstick;
-
-private:
+    static const std::map<const char*, const std::pair<const int, const int>> buttons_setting;
     static std::map<u32, u32> buttons;
     static u32 touch_button0, touch_button1;
 
+private:
     bool            running = false;
     int             touch_type = TOUCH_CROSS;
 
