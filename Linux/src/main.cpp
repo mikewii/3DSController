@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
     Application app;
 
     while(app.isRunning()) {
-        app.print_packet();
+        //app.print_packet();
 
         if (app.receive()) {
             app.preprocess();

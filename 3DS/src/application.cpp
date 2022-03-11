@@ -1,13 +1,14 @@
 #include "application.hpp"
 
 #include <arpa/inet.h>
-
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
 #include <fstream>
 #include <algorithm>
 #include <limits>
+
+#define BUFFER_SIZE 1024
 
 Settings settings =
 {
@@ -16,7 +17,15 @@ Settings settings =
     .mode = MODE::Lite_V2,
 };
 
-#define BUFFER_SIZE 1024
+const char* getModeStr(const int mode)
+{
+    switch(mode){
+    case MODE::DEFAULT: return "Default";
+    case MODE::Lite_V1: return "Lite V1";
+    case MODE::Lite_V2: return "Lite V2";
+    default:return "Mode error!";
+    }
+}
 
 const bool isValidIpAddress(const char* ipAddress)
 {
@@ -72,6 +81,7 @@ void Application::prepare(void)
     }
 
     this->get_input();
+    if (this->settings_set) this->write_settings();
 
     GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTH);
     aptSetHomeAllowed(false); // because hang in aptJumpToHomeMenu, turning lcd back on doesnt help
@@ -121,10 +131,10 @@ void Application::get_input(void)
             }
 
             memset(buffer, 0, sizeof(buffer));
-            this->keyboard(false, buffer, "IP", initial_IP);
+            this->keyboard(buffer, "IP", initial_IP);
 
             if (isValidIpAddress(buffer)) {
-                strncpy(settings.IP, buffer, sizeof(settings.IP) - 1);
+                strncpy(settings.IP, buffer, sizeof(settings.IP));
                 Network::setIP();
                 this->settings_set &= true;
             } else {
@@ -133,7 +143,7 @@ void Application::get_input(void)
             }
 
             memset(buffer, 0, sizeof(buffer));
-            this->keyboard(true, buffer, "PORT", initial_port);
+            this->keyboard(buffer, "PORT", initial_port, true);
 
             int port = std::stoi(buffer);
             if (port <= std::numeric_limits<s16>().max()) {
@@ -144,8 +154,18 @@ void Application::get_input(void)
                 this->settings_set &= false;
                 // error
             }
-
-            if (this->settings_set) this->write_settings();
+        } else if (kDown & KEY_DUP) {
+            if (settings.mode == MODE::DEFAULT)
+                settings.mode = MODE::Lite_V2;
+            else  settings.mode -= 1;
+            this->settings_set &= true;
+            svcSleepThread(200000000); // 200ms
+        } else if (kDown & KEY_DDOWN) {
+            if (settings.mode == MODE::Lite_V2)
+                settings.mode = MODE::DEFAULT;
+            else  settings.mode += 1;
+            this->settings_set &= true;
+            svcSleepThread(200000000); // 200ms
         } else if ((kDown & KEY_START) && (kDown & KEY_SELECT)) {
             this->running = false;
             break;
@@ -154,19 +174,21 @@ void Application::get_input(void)
         }
 
         printf("\x1b[1;0HIP: %-16s PORT: %-5d", settings.IP, settings.port);
-        printf("\x1b[2;0HPress X to configure IP and port.");
-        printf("\x1b[3;0HPress R to start in default mode");
-        printf("\x1b[4;0HPress L to start in lite mode");
-        printf("\x1b[5;0HPress START + SELECT to exit.");
+        printf("\x1b[2;0HMODE: %s", getModeStr(settings.mode));
+
+        printf("\x1b[4;0H[X] to configure IP and port.");
+        printf("\x1b[5;0H[Dpad Up/Down] to change mode");
+
+        printf("\x1b[7;0H[R] to start");
+        printf("\x1b[8;0H[START + SELECT] to exit.");
 
         this->swap_buffers();
     }
 }
 
-int Application::keyboard(bool isPort, char *buffer, const char* hint, const char* initialText)
+void Application::keyboard(char *buffer, const char* hint, const char* initialText, bool isPort)
 {
     static SwkbdState   swkbd;
-    static SwkbdButton  button = SWKBD_BUTTON_NONE;
 
     int limit = isPort ? 5 : 15;
 
@@ -181,11 +203,7 @@ int Application::keyboard(bool isPort, char *buffer, const char* hint, const cha
     if (strcmp(initialText, "") != 0)
         swkbdSetInitialText(&swkbd, initialText);
 
-    button = swkbdInputText(&swkbd, buffer, BUFFER_SIZE);
-
-    SwkbdResult res = swkbdGetResult(&swkbd);
-
-    return (res == SWKBD_D0_CLICK);
+    swkbdInputText(&swkbd, buffer, BUFFER_SIZE);
 }
 
 void Application::wait_for_wifi(void)

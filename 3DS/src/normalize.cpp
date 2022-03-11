@@ -29,13 +29,17 @@ Packet_lite_v1 Normalize::v1(const u32 _keys, const touchPosition _touch, const 
     p.touch_x = _touch.px;
     p.touch_y = _touch.py;
 
-    if ((_leftstick.dx > DEADZONE || _leftstick.dx < DEADZONE) && (_leftstick.dy > DEADZONE || _leftstick.dy < DEADZONE)) {
+    if (_leftstick.dx > DEADZONE || _leftstick.dx < -DEADZONE) {
         p.lx = this->l_stick(_leftstick.dx);
+    }
+    if (_leftstick.dy > DEADZONE || _leftstick.dy < -DEADZONE) {
         p.ly = this->l_stick(_leftstick.dy);
     }
 
-    if ((_rightstick.dx > DEADZONE || _rightstick.dx < DEADZONE) && (_rightstick.dy > DEADZONE || _rightstick.dy < DEADZONE)) {
+    if (_rightstick.dx > DEADZONE || _rightstick.dx < -DEADZONE) {
         p.rx = this->r_stick(_rightstick.dx);
+    }
+    if (_rightstick.dy > DEADZONE || _rightstick.dy < -DEADZONE) {
         p.ry = this->r_stick(_rightstick.dy);
     }
 
@@ -60,15 +64,10 @@ Packet_lite_v2 Normalize::v2(const u32 _keys, const touchPosition _touch, const 
     p.touch_x = this->touch_x(_touch.px);
     p.touch_y = this->touch_y(_touch.py);
 
-    if ((_leftstick.dx > DEADZONE || _leftstick.dx < DEADZONE) && (_leftstick.dy > DEADZONE || _leftstick.dy < DEADZONE)) {
-        p.lx = _leftstick.dx;
-        p.ly = _leftstick.dy;
-    }
-
-    if ((_rightstick.dx > DEADZONE || _rightstick.dx < DEADZONE) && (_rightstick.dy > DEADZONE || _rightstick.dy < DEADZONE)) {
-        p.rx = _rightstick.dx;
-        p.ry = _rightstick.dy;
-    }
+    p.lx = _leftstick.dx;
+    p.ly = _leftstick.dy;
+    p.rx = _rightstick.dx;
+    p.ry = _rightstick.dy;
 
     return p;
 }

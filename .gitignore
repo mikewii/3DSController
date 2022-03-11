@@ -6,5 +6,7 @@ build*
 *.3ds
 *.cia
 *.exe
+*.sh
+*.png
 *.user*
 PC/build/

@@ -30,5 +30,5 @@ private:
     const bool write_settings(void);
 
     void    get_input(void);
-    int     keyboard(bool isPort, char* buffer, const char* hint, const char* initialText);
+    void    keyboard(char* buffer, const char* hint, const char* initialText, bool isPort = false);
 };

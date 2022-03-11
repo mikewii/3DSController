@@ -50,7 +50,7 @@ Network::~Network()
         this->sockfd = 0;
     }
 }
-bool yes;
+
 const bool Network::receive(void)
 {
     socklen_t   client_addr_len = sizeof(this->client_addr);
@@ -68,23 +68,18 @@ const bool Network::receive(void)
 
     // TODO: any need to deal with timeout errors?
 
-    return yes = received == buffer_size;
+    return received == buffer_size;
 }
 
 void Network::print_packet(void) const
 {
     Packet_lite_v2& packet = reinterpret_cast<Packet_lite_v2&>(buffer);
 
-    if (yes) {
-        printf("keys        : %d\n", packet.keys);
-        printf("left  stick : %d %d\n", packet.lx, packet.ly);
-        printf("right stick : %d %d\n", packet.rx, packet.ry);
-        printf("touch       : %d %d\n", packet.touch_x, packet.touch_y);
-        fflush(stdout);
-    } else {
-        printf("nothing received!\n");
-        fflush(stdout);
-    }
+    printf("keys        : %d\n", packet.keys);
+    printf("left  stick : %d %d\n", packet.lx, packet.ly);
+    printf("right stick : %d %d\n", packet.rx, packet.ry);
+    printf("touch       : %d %d\n", packet.touch_x, packet.touch_y);
+    fflush(stdout);
 }
 
 const bool Network::configure_socket(void) const

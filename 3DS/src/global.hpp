@@ -49,14 +49,14 @@ extern char buffer[16];
 extern int  buffer_size;
 
 enum MODE : int {
-    DEFAULT,
+    DEFAULT = 0,
     Lite_V1,
     Lite_V2
 };
 
 struct Settings {
-    char        IP[16];
-    int         port;
-    MODE        mode;
+    char IP[16];
+    int  port;
+    int  mode;
 };
 extern Settings settings;
