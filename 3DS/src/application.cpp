@@ -85,8 +85,6 @@ void Application::prepare(void)
 
     GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTH);
     aptSetHomeAllowed(false); // because hang in aptJumpToHomeMenu, turning lcd back on doesnt help
-
-    settings.mode = MODE::Lite_V2; // fixme
 }
 
 void Application::mainLoop(void)

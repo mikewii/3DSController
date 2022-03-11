@@ -227,12 +227,12 @@ if __name__ == "__main__":
 			
 		data = {
 			"keys": fields[0],
-			"lelfStickX": fields[1],
-			"lelfStickY": fields[2],
-			"rightStickX": fields[3],
-			"rightStickY": fields[4],
-			"touchX": fields[5],
-			"touchY": fields[6],
+			"touchX": fields[1],
+			"touchY": fields[2],
+			"lelfStickX": fields[3],
+			"lelfStickY": fields[4],
+			"rightStickX": fields[5],
+			"rightStickY": fields[6],
 		}
 		
 		handle_buttons(data["keys"])
