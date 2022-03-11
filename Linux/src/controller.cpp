@@ -216,16 +216,16 @@ void Controller::process_keys(void) const
 void Controller::process_dpad(void) const
 {
     if (N3DS_KEY_DLEFT & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0X, -1);
+        this->_emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().min());
     else if (N3DS_KEY_DRIGHT & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0X, 1);
+        this->_emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().max());
     else
         this->_emit(EV_ABS, ABS_HAT0X, 0);
 
     if (N3DS_KEY_DUP & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0Y, -1);
+        this->_emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().min());
     else if (N3DS_KEY_DDOWN & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0Y, 1);
+        this->_emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().max());
     else
         this->_emit(EV_ABS, ABS_HAT0Y, 0);
 
