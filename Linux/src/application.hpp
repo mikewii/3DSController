@@ -10,6 +10,7 @@ class Application : public Network, public Controller, Normalize
 public:
     Application();
 
+    void mainLoop(void);
     void preprocess(void);
 
     void        write_settings(void) const;

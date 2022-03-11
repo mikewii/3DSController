@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string.h>
+#include <csignal>
 
 Settings settings =
 {
@@ -18,6 +19,30 @@ Application::Application()
     case MODE::Lite_V1: buffer_size = sizeof(Packet_lite_v1); break;
     case MODE::Lite_V2: buffer_size = sizeof(Packet_lite_v2); break;
     default:break;
+    }
+}
+
+
+
+
+void Application::mainLoop(void)
+{
+    static bool exitRequested = false;
+    auto        signal_handler = [](int signal) { exitRequested = true; };
+
+    std::signal(SIGINT, signal_handler);
+
+    while(this->isRunning()) {
+        //app.print_packet();
+
+        if (this->receive()) {
+            this->preprocess();
+            this->process();
+        } else {
+            this->panic();
+        }
+
+        if (exitRequested) break;
     }
 }
 

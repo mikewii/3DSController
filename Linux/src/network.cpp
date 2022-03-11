@@ -39,10 +39,6 @@ Network::~Network()
     this->running = false;
 
     if (this->sockfd > 0 ) {
-        if (shutdown(this->sockfd, SHUT_RDWR) < 0) {
-            Log::print("shutdown");
-        }
-
         if (close(this->sockfd) < 0) {
             Log::print("close");
         }
