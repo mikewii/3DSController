@@ -56,7 +56,7 @@ enum MODE : int {
 
 struct Settings {
     char IP[16];
-    int  port;
+    u16  port;
     int  mode;
 };
 extern Settings settings;

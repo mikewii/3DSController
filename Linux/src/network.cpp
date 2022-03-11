@@ -47,6 +47,19 @@ Network::~Network()
     }
 }
 
+const bool Network::setPort(const std::string &port)
+{
+    if (port.size() <= 5 && port.find_first_not_of("0123456789") == std::string::npos) {
+        u16 port_value = std::stoi(port);
+
+        settings.port = port_value;
+
+        this->server_addr.sin_port = htons(settings.port);
+
+        return true;
+    } else return false;
+}
+
 const bool Network::receive(void)
 {
     socklen_t   client_addr_len = sizeof(this->client_addr);

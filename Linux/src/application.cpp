@@ -8,22 +8,13 @@ Settings settings =
 {
     .IP = {'1', '9', '2', '.', '1', '6', '8', '.', '0', '.', '1'},
     .port = 8889,
-    .mode = MODE::Lite_V2,
+    .mode = MODE::DEFAULT,
 };
 
 Application::Application()
 {
-    // apply mode settings
-    switch(settings.mode){
-    case MODE::DEFAULT: buffer_size = sizeof(Packet); break;
-    case MODE::Lite_V1: buffer_size = sizeof(Packet_lite_v1); break;
-    case MODE::Lite_V2: buffer_size = sizeof(Packet_lite_v2); break;
-    default:break;
-    }
+    this->setBufferSize();
 }
-
-
-
 
 void Application::mainLoop(void)
 {
@@ -118,9 +109,18 @@ void Application::write_settings(void) const
     if (!std::filesystem::exists(fullpath)) {
         std::fstream file(fullpath, std::ios::out);
         static const char* message =
-                "# Custom controller map\n" \
-                "# [left right] left is 3ds button, right is expected button \n" \
-                "# example:\n" \
+                "# Application support 3 modes, default, lite v1 lite v2\n" \
+                "# Mode values: 0 default, 1 lite v1, 2 lite v2" \
+                "# default: 16byte packet with no degradation\n" \
+                "# lite v1: 8byte packet with both sticks having less precision\n" \
+                "# lite v2: 8byte packet with touch having less precision\n" \
+                "# Settings read in [key value] pairs\n" \
+                "# For controller [left right] left is 3ds button, right is expected button \n" \
+                "# Port range 0 - 65535\n" \
+                "#\n" \
+                "# example settings:\n" \
+                "# mode 2\n" \
+                "# port 8889\n" \
                 "# x y\n";
 
         if (file.is_open()) {
@@ -130,7 +130,7 @@ void Application::write_settings(void) const
     }
 }
 
-const bool Application::read_settings(void) const
+const bool Application::read_settings(void)
 {
 #define BUFFER_SIZE 1024
     bool                    res = true;
@@ -153,10 +153,40 @@ const bool Application::read_settings(void) const
             left = line.substr(0, space_pos);
             right = line.substr(space_pos + 1);
 
-            res &= Controller::replace_button(left, right);
+            if (line.find("PORT") != std::string::npos)
+                res &= Network::setPort(right);
+            else if (line.find("MODE") != std::string::npos)
+                res &= Application::setMode(right);
+            else
+                res &= Controller::replace_button(left, right);
         }
 
         file.close();
         return res;
     } else return false;
+}
+
+const bool Application::setMode(const std::string &mode)
+{
+    if (mode.size() == 1 && mode.find_first_not_of("0123456789") == std::string::npos) {
+        int mode_value = std::stoi(mode);
+
+        if (mode_value >= MODE::DEFAULT && mode_value <= MODE::Lite_V2) {
+            settings.mode = mode_value;
+
+            this->setBufferSize();
+        }
+    }
+
+    return false;
+}
+
+void Application::setBufferSize(void) const
+{
+    switch(settings.mode){
+    case MODE::DEFAULT: buffer_size = sizeof(Packet); break;
+    case MODE::Lite_V1: buffer_size = sizeof(Packet_lite_v1); break;
+    case MODE::Lite_V2: buffer_size = sizeof(Packet_lite_v2); break;
+    default:break;
+    }
 }

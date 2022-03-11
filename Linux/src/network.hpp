@@ -2,6 +2,7 @@
 #include "global.hpp"
 
 #include <netinet/in.h>
+#include <string>
 
 class Network
 {
@@ -9,11 +10,13 @@ public:
     Network();
     ~Network();
 
-    const bool isRunning(void) const { return this->running; }
+    const bool  setPort(const std::string& port);
 
-    const bool receive(void);
+    const bool  isRunning(void) const { return this->running; }
 
-    void print_packet(void) const;
+    const bool  receive(void);
+
+    void        print_packet(void) const;
 
 private:
     bool        running = false;
