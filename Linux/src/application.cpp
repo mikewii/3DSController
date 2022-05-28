@@ -109,13 +109,13 @@ void Application::write_settings(void) const
     if (!std::filesystem::exists(fullpath)) {
         std::fstream file(fullpath, std::ios::out);
         static const char* message =
-                "# Application support 3 modes, default, lite v1 lite v2\n" \
+                "# Application support 3 modes, default, lite v1, lite v2\n" \
                 "# Mode values: 0 default, 1 lite v1, 2 lite v2" \
                 "# default: 16byte packet with no degradation\n" \
                 "# lite v1: 8byte packet with both sticks having less precision\n" \
                 "# lite v2: 8byte packet with touch having less precision\n" \
                 "# Settings read in [key value] pairs\n" \
-                "# For controller [left right] left is 3ds button, right is expected button \n" \
+                "# For controller [left right] left is 3ds button, right is emulated button \n" \
                 "# Port range 0 - 65535\n" \
                 "#\n" \
                 "# example settings:\n" \

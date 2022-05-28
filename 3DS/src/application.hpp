@@ -18,7 +18,6 @@ public:
 private:
     PrintConsole    bottomScreen;
     bool            running = false;
-    bool            settings_set = false;
 
     const char*     settings_filename = "3DSController.ini";
 
@@ -29,6 +28,6 @@ private:
     const bool read_settings(void);
     const bool write_settings(void);
 
-    void    get_input(void);
-    void    keyboard(char* buffer, const char* hint, const char* initialText, bool isPort = false);
+    const bool  get_input(const bool settings_read);
+    void        keyboard(char* buffer, const char* hint, const char* initialText, bool isPort = false);
 };

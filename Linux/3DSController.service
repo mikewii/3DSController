@@ -1,0 +1,14 @@
+[Unit]
+Description=3DS Controller
+StartLimitIntervalSec=500
+StartLimitBurst=5
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/3DSController
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target

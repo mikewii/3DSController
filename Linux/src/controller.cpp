@@ -125,7 +125,7 @@ void Controller::configure(void)
     this->usetup.id.vendor = 0x0;
     this->usetup.id.product = 0x0;
     this->usetup.id.version = 0x0;
-    strcpy(this->usetup.name, "virtual controller");
+    strcpy(this->usetup.name, "3DS Controller");
 }
 
 void Controller::process(void)

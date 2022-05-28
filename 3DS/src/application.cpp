@@ -73,15 +73,15 @@ Application::~Application()
 void Application::prepare(void)
 {
     this->wait_for_wifi();
-    this->settings_set = this->read_settings();
 
-    if (this->settings_set) {
+    auto settings_been_read = this->read_settings();
+    if (settings_been_read) {
         Network::setIP();
         Network::setPort();
     }
 
-    this->get_input();
-    if (this->settings_set) this->write_settings();
+    auto settings_been_updated = this->get_input(settings_been_read);
+    if (settings_been_updated) this->write_settings();
 
     GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTH);
     aptSetHomeAllowed(false); // because hang in aptJumpToHomeMenu, turning lcd back on doesnt help
@@ -109,68 +109,14 @@ void Application::mainLoop(void)
     }
 }
 
-void Application::get_input(void)
+const bool Application::get_input(const bool settings_read)
 {
     const char* initial_IP = "";
     char        initial_port[6];
+    bool        res = false;
 
 
     while (aptMainLoop() && this->isRunning()) {
-        hidScanInput();
-
-        u32 kDown = hidKeysHeld();
-
-        if (kDown & KEY_X) {
-            char buffer[BUFFER_SIZE];
-
-            if (this->settings_set) {
-                initial_IP = settings.IP;
-                itoa(settings.port, initial_port, 10);
-            }
-
-            memset(buffer, 0, sizeof(buffer));
-            this->keyboard(buffer, "IP", initial_IP);
-
-            if (isValidIpAddress(buffer)) {
-                strncpy(settings.IP, buffer, sizeof(settings.IP));
-                Network::setIP();
-                this->settings_set &= true;
-            } else {
-                this->settings_set &= false;
-                // error
-            }
-
-            memset(buffer, 0, sizeof(buffer));
-            this->keyboard(buffer, "PORT", initial_port, true);
-
-            int port = std::stoi(buffer);
-            if (port <= std::numeric_limits<s16>().max()) {
-                settings.port = port;
-                Network::setPort();
-                this->settings_set &= true;
-            } else {
-                this->settings_set &= false;
-                // error
-            }
-        } else if (kDown & KEY_DUP) {
-            if (settings.mode == MODE::DEFAULT)
-                settings.mode = MODE::Lite_V2;
-            else  settings.mode -= 1;
-            this->settings_set &= true;
-            svcSleepThread(200000000); // 200ms
-        } else if (kDown & KEY_DDOWN) {
-            if (settings.mode == MODE::Lite_V2)
-                settings.mode = MODE::DEFAULT;
-            else  settings.mode += 1;
-            this->settings_set &= true;
-            svcSleepThread(200000000); // 200ms
-        } else if ((kDown & KEY_START) && (kDown & KEY_SELECT)) {
-            this->running = false;
-            break;
-        } else if (kDown & KEY_R) {
-            break;
-        }
-
         printf("\x1b[1;0HIP: %-16s PORT: %-5d", settings.IP, settings.port);
         printf("\x1b[2;0HMODE: %s", getModeStr(settings.mode));
 
@@ -181,7 +127,63 @@ void Application::get_input(void)
         printf("\x1b[8;0H[START + SELECT] to exit.");
 
         this->swap_buffers();
+
+        hidScanInput();
+        u32 kDown = hidKeysHeld();
+
+        if (kDown & KEY_X) {
+            char buffer[BUFFER_SIZE];
+
+            if (settings_read) {
+                initial_IP = settings.IP;
+                itoa(settings.port, initial_port, 10);
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+            this->keyboard(buffer, "IP", initial_IP);
+
+            if (isValidIpAddress(buffer)) {
+                strncpy(settings.IP, buffer, sizeof(settings.IP));
+                Network::setIP();
+                res &= true;
+            } else {
+                res &= false;
+                // error
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+            this->keyboard(buffer, "PORT", initial_port, true);
+
+            int port = std::stoi(buffer);
+            if (port > 0 && port <= std::numeric_limits<u16>().max()) {
+                settings.port = port;
+                Network::setPort();
+                res &= true;
+            } else {
+                res &= false;
+                // error
+            }
+        } else if (kDown & KEY_DUP) {
+            if (settings.mode == MODE::DEFAULT)
+                settings.mode = MODE::Lite_V2;
+            else  settings.mode -= 1;
+            res &= true;
+            svcSleepThread(200000000); // 200ms
+        } else if (kDown & KEY_DDOWN) {
+            if (settings.mode == MODE::Lite_V2)
+                settings.mode = MODE::DEFAULT;
+            else  settings.mode += 1;
+            res &= true;
+            svcSleepThread(200000000); // 200ms
+        } else if ((kDown & KEY_START) && (kDown & KEY_SELECT)) {
+            this->running = false;
+            break;
+        } else if (kDown & KEY_R) {
+            break;
+        }
     }
+
+    return res;
 }
 
 void Application::keyboard(char *buffer, const char* hint, const char* initialText, bool isPort)
