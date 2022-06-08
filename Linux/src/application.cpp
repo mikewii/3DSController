@@ -26,7 +26,7 @@ static const char* message =
     "# x y\n";
 
 
-static std::filesystem::path           settings_file;
+static std::filesystem::path           settings_file_path;
 static std::filesystem::file_time_type last_write_time;
 static std::filesystem::file_time_type new_write_time;
 static std::chrono::duration<double>   time_passed;
@@ -46,8 +46,8 @@ Application::Application()
 {
     this->setBufferSize();
 
-    settings_file.append((std::getenv("HOME")));
-    settings_file.append(this->settings_filename);
+    settings_file_path.append((std::getenv("HOME")));
+    settings_file_path.append(this->settings_filename);
 }
 
 void Application::mainLoop(void)
@@ -58,7 +58,7 @@ void Application::mainLoop(void)
 
     std::signal(SIGINT, signal_handler);
 
-    last_write_time = std::filesystem::last_write_time(settings_file);
+    last_write_time = std::filesystem::last_write_time(settings_file_path);
 
     while(this->isRunning()) {
         //app.print_packet();
@@ -227,7 +227,12 @@ void Application::checkSettingsFile(void)
     time_passed = time_now - time_start;
 
     if (time_passed.count() > 10) {
-        new_write_time = std::filesystem::last_write_time(settings_file);
+        if (!std::filesystem::exists(settings_file_path)) {
+            this->write_settings();
+            return;
+        }
+
+        new_write_time = std::filesystem::last_write_time(settings_file_path);
         time_start = std::chrono::system_clock::now();
 
         if (last_write_time != new_write_time) {
