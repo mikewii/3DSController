@@ -91,12 +91,14 @@ public:
 
     bool replace_button(const std::string& left, const std::string& right) const;
     void replace_button(int id_3ds, int id_uinput) const;
+    void reset_buttons(void);
 
     u32         keys;
     T16<u16>    touch;
     T16<s16>    lstick, rstick;
     static const std::map<const char*, const std::pair<const int, const int>> buttons_setting;
     static std::map<u32, u32> buttons;
+    static const std::map<u32, u32> buttons_default;
     static u32 touch_button0, touch_button1;
 
 private:

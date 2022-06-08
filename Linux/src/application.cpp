@@ -163,6 +163,8 @@ const bool Application::read_settings(void)
     std::filesystem::path   fullpath(std::getenv("HOME"));
     std::fstream            file(fullpath.append(this->settings_filename), std::ios::in);
 
+    Controller::reset_buttons();
+
     if (file.is_open()) {
         while(file.getline(buffer, BUFFER_SIZE)) {
             std::string line(buffer);
@@ -184,8 +186,9 @@ const bool Application::read_settings(void)
                 res &= Network::setTimeout(right);
             else if (line.find("MODE") != std::string::npos)
                 res &= Application::setMode(right);
-            else
+            else {
                 res &= Controller::replace_button(left, right);
+            }
         }
 
         file.close();

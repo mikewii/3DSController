@@ -41,6 +41,7 @@ static const axes controller_axes =
     {ABS_HAT0Y, -1, 1, 0}
 };
 
+
 const std::map<const char*, const std::pair<const int, const int>> Controller::buttons_setting =
 {
     {"A",       {N3DS_KEY_A, BTN_A}},
@@ -53,6 +54,20 @@ const std::map<const char*, const std::pair<const int, const int>> Controller::b
     {"ZR",      {N3DS_KEY_ZR, BTN_TR2}},
     {"START",   {N3DS_KEY_START, BTN_START}},
     {"SELECT",  {N3DS_KEY_SELECT, BTN_SELECT}}
+};
+
+const std::map<u32, u32> Controller::buttons_default =
+{
+    {N3DS_KEY_A,        BTN_A},
+    {N3DS_KEY_B,        BTN_B},
+    {N3DS_KEY_X,        BTN_X},
+    {N3DS_KEY_Y,        BTN_Y},
+    {N3DS_KEY_L,        BTN_TL},
+    {N3DS_KEY_R,        BTN_TR},
+    {N3DS_KEY_ZL,       BTN_TL2},
+    {N3DS_KEY_ZR,       BTN_TR2},
+    {N3DS_KEY_SELECT,   BTN_SELECT},
+    {N3DS_KEY_START,    BTN_START}
 };
 
 std::map<u32, u32> Controller::buttons =
@@ -201,6 +216,11 @@ void Controller::replace_button(int id_3ds, int id_uinput) const
     for (auto& btn : Controller::buttons)
         if (btn.first == id_3ds)
             btn.second = id_uinput;
+}
+
+void Controller::reset_buttons(void)
+{
+    this->buttons = this->buttons_default;
 }
 
 void Controller::process_keys(void) const
