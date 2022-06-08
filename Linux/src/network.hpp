@@ -11,6 +11,7 @@ public:
     ~Network();
 
     const bool  setPort(const std::string& port);
+    const bool  setTimeout(const std::string& value);
 
     const bool  isRunning(void) const { return this->running; }
 
@@ -26,4 +27,7 @@ private:
     timeval     timeout = {.tv_sec = 0, .tv_usec = 50000}; // 50ms
 
     const bool  configure_socket(void) const;
+
+    bool        init(void);
+    void        exit(void);
 };

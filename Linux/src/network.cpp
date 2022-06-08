@@ -11,40 +11,14 @@ int  buffer_size = 0;
 
 Network::Network()
 {
-    this->sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (this->sockfd <= 0) {
-        Log::print("socket");
-        return;
-    }
-
-    if (!this->configure_socket()) return;
-
-    memset(&this->server_addr, 0, sizeof(this->server_addr));
-    memset(&this->client_addr, 0, sizeof(this->client_addr));
-
-    this->server_addr.sin_family = AF_INET;
-    this->server_addr.sin_addr.s_addr = INADDR_ANY;
-    this->server_addr.sin_port = htons(settings.port);
-
-    if (bind(this->sockfd, reinterpret_cast<__CONST_SOCKADDR_ARG>(&this->server_addr), sizeof(this->server_addr)) < 0) {
-        Log::print("bind");
-        return;
-    }
-
-    this->running = true;
+    this->running = this->init();
 }
 
 Network::~Network()
 {
     this->running = false;
 
-    if (this->sockfd > 0 ) {
-        if (close(this->sockfd) < 0) {
-            Log::print("close");
-        }
-
-        this->sockfd = 0;
-    }
+    this->exit();
 }
 
 const bool Network::setPort(const std::string &port)
@@ -54,7 +28,32 @@ const bool Network::setPort(const std::string &port)
 
         settings.port = port_value;
 
-        this->server_addr.sin_port = htons(settings.port);
+        if (this->server_addr.sin_port != htons(settings.port)) {
+            this->exit();
+
+            this->server_addr.sin_port = htons(settings.port);
+
+            this->init();
+        }
+        return true;
+    } else return false;
+}
+
+const bool Network::setTimeout(const std::string& value)
+{
+    if (value.size() <= 5 && value.find_first_not_of("0123456789") == std::string::npos) {
+        u16 timeout_value = std::stoi(value);
+
+        settings.network_timeout_ms = timeout_value;
+
+        // idk if we can update timeout value on fly, reinit just to be sure
+        if (this->timeout.tv_usec != settings.network_timeout_ms * 1000) {
+            this->exit();
+
+            this->timeout.tv_usec = settings.network_timeout_ms * 1000;
+
+            this->init();
+        }
 
         return true;
     } else return false;
@@ -106,4 +105,40 @@ const bool Network::configure_socket(void) const
     }
 
     return true;
+}
+
+bool Network::init(void)
+{
+    this->sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (this->sockfd <= 0) {
+        Log::print("socket");
+        return false;
+    }
+
+    if (!this->configure_socket()) return false;
+
+    memset(&this->server_addr, 0, sizeof(this->server_addr));
+    memset(&this->client_addr, 0, sizeof(this->client_addr));
+
+    this->server_addr.sin_family = AF_INET;
+    this->server_addr.sin_addr.s_addr = INADDR_ANY;
+    this->server_addr.sin_port = htons(settings.port);
+
+    if (bind(this->sockfd, reinterpret_cast<__CONST_SOCKADDR_ARG>(&this->server_addr), sizeof(this->server_addr)) < 0) {
+        Log::print("bind");
+        return false;
+    }
+
+    return true;
+}
+
+void Network::exit(void)
+{
+    if (this->sockfd > 0 ) {
+        if (close(this->sockfd) < 0) {
+            Log::print("close");
+        }
+
+        this->sockfd = 0;
+    }
 }

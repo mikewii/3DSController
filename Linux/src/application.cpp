@@ -4,16 +4,50 @@
 #include <string.h>
 #include <csignal>
 
+
+static const char* message =
+    "# Settings read in [key value] pairs\n" \
+    "# For controller [left right] left is 3ds button, right is emulated button\n" \
+    "# mode:\n" \
+    "#   0  (default) 16byte packet with no degradation\n" \
+    "#   1  (lite v1) 8byte packet with both sticks having less precision\n" \
+    "#   2  (lite v2) 8byte packet with touch having less precision\n" \
+    "#\n" \
+    "# port:\n" \
+    "#   0 - 65535\n" \
+    "#\n" \
+    "# timeout: time in milliseconds when controller release all buttons if packet is not received\n" \
+    "#   0 - 65535\n" \
+    "#\n\n" \
+    "# example settings:\n" \
+    "# mode 2\n" \
+    "# port 8889\n" \
+    "# timeout 50\n" \
+    "# x y\n";
+
+
+static std::filesystem::path           settings_file;
+static std::filesystem::file_time_type last_write_time;
+static std::filesystem::file_time_type new_write_time;
+static std::chrono::duration<double>   time_passed;
+static auto                            time_start = std::chrono::system_clock::now();
+static auto                            time_now = std::chrono::system_clock::now();
+
+
 Settings settings =
 {
     .IP = {'1', '9', '2', '.', '1', '6', '8', '.', '0', '.', '1'},
     .port = 8889,
+    .network_timeout_ms = 50,
     .mode = MODE::DEFAULT,
 };
 
 Application::Application()
 {
     this->setBufferSize();
+
+    settings_file.append((std::getenv("HOME")));
+    settings_file.append(this->settings_filename);
 }
 
 void Application::mainLoop(void)
@@ -21,7 +55,10 @@ void Application::mainLoop(void)
     static bool exitRequested = false;
     auto        signal_handler = [](int signal) { exitRequested = true; };
 
+
     std::signal(SIGINT, signal_handler);
+
+    last_write_time = std::filesystem::last_write_time(settings_file);
 
     while(this->isRunning()) {
         //app.print_packet();
@@ -32,6 +69,8 @@ void Application::mainLoop(void)
         } else {
             this->panic();
         }
+
+        this->checkSettingsFile();
 
         if (exitRequested) break;
     }
@@ -108,20 +147,6 @@ void Application::write_settings(void) const
 
     if (!std::filesystem::exists(fullpath)) {
         std::fstream file(fullpath, std::ios::out);
-        static const char* message =
-                "# Application support 3 modes, default, lite v1, lite v2\n" \
-                "# Mode values: 0 default, 1 lite v1, 2 lite v2" \
-                "# default: 16byte packet with no degradation\n" \
-                "# lite v1: 8byte packet with both sticks having less precision\n" \
-                "# lite v2: 8byte packet with touch having less precision\n" \
-                "# Settings read in [key value] pairs\n" \
-                "# For controller [left right] left is 3ds button, right is emulated button \n" \
-                "# Port range 0 - 65535\n" \
-                "#\n" \
-                "# example settings:\n" \
-                "# mode 2\n" \
-                "# port 8889\n" \
-                "# x y\n";
 
         if (file.is_open()) {
             file.write(message, strlen(message));
@@ -155,6 +180,8 @@ const bool Application::read_settings(void)
 
             if (line.find("PORT") != std::string::npos)
                 res &= Network::setPort(right);
+            else if (line.find("TIMEOUT") != std::string::npos)
+                res &= Network::setTimeout(right);
             else if (line.find("MODE") != std::string::npos)
                 res &= Application::setMode(right);
             else
@@ -189,4 +216,21 @@ void Application::setBufferSize(void) const
     case MODE::Lite_V2: buffer_size = sizeof(Packet_lite_v2); break;
     default:break;
     }
+}
+
+void Application::checkSettingsFile(void)
+{
+    time_now = std::chrono::system_clock::now();
+    time_passed = time_now - time_start;
+
+    if (time_passed.count() > 10) {
+        new_write_time = std::filesystem::last_write_time(settings_file);
+        time_start = std::chrono::system_clock::now();
+
+        if (last_write_time != new_write_time) {
+            last_write_time = new_write_time;
+            this->read_settings();
+        }
+    }
+
 }

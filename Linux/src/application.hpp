@@ -23,4 +23,5 @@ private:
 
     const bool  setMode(const std::string& mode);
     void        setBufferSize(void) const;
+    void        checkSettingsFile(void);
 };
