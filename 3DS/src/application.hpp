@@ -10,24 +10,24 @@ public:
     Application();
     ~Application();
 
-    const bool isRunning(void) const { return this->running; }
+    bool isRunning(void) const { return m_running; }
 
     void prepare(void);
     void mainLoop(void);
 
 private:
-    PrintConsole    bottomScreen;
-    bool            running = false;
+    PrintConsole    m_bottomScreen;
+    bool            m_running;
 
     const char*     settings_filename = "3DSController.ini";
 
     void wait_for_wifi(void);
     void swap_buffers(void) const;
 
-    const bool read_settings_value(const std::string& value, const int type);
-    const bool read_settings(void);
-    const bool write_settings(void);
+    bool read_settings_value(const std::string& value, const int type);
+    bool read_settings(void);
+    bool write_settings(void);
 
-    const bool  get_input(const bool settings_read);
-    void        keyboard(char* buffer, const char* hint, const char* initialText, bool isPort = false);
+    bool get_input(const bool settings_read);
+    void keyboard(char* buffer, const char* hint, const char* initialText, bool isPort = false);
 };

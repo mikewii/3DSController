@@ -12,7 +12,7 @@
 
 Settings settings =
 {
-    .IP = {'1', '9', '2', '.', '1', '6', '8', '.', '0', '.', '1'},
+    .IP = {'2', '5', '5', '.', '2', '5', '5', '.', '2', '5', '5', '.', '2', '5', '5'},
     .port = 8889,
     .mode = MODE::Lite_V2,
 };
@@ -27,7 +27,7 @@ const char* getModeStr(const int mode)
     }
 }
 
-const bool isValidIpAddress(const char* ipAddress)
+bool isValidIpAddress(const char* ipAddress)
 {
     struct sockaddr_in sa;
 
@@ -37,6 +37,7 @@ const bool isValidIpAddress(const char* ipAddress)
 }
 
 Application::Application()
+    : m_running(false)
 {
     if (!Network::isRunning())
         return;
@@ -54,10 +55,10 @@ Application::Application()
     gfxSetDoubleBuffering(GFX_TOP, false);
     gfxSetDoubleBuffering(GFX_BOTTOM, false);
 
-    consoleInit(GFX_BOTTOM, &bottomScreen);
-    consoleSelect(&bottomScreen);
+    consoleInit(GFX_BOTTOM, &m_bottomScreen);
+    consoleSelect(&m_bottomScreen);
 
-    this->running = true;
+    m_running = true;
 }
 
 Application::~Application()
@@ -72,16 +73,17 @@ Application::~Application()
 
 void Application::prepare(void)
 {
-    this->wait_for_wifi();
+    wait_for_wifi();
 
-    auto settings_been_read = this->read_settings();
+    auto settings_been_read = read_settings();
     if (settings_been_read) {
         Network::setIP();
         Network::setPort();
     }
 
-    auto settings_been_updated = this->get_input(settings_been_read);
-    if (settings_been_updated) this->write_settings();
+    auto settings_been_updated = get_input(settings_been_read);
+    if (settings_been_updated)
+        write_settings();
 
     GSPLCD_PowerOffBacklight(GSPLCD_SCREEN_BOTH);
     aptSetHomeAllowed(false); // because hang in aptJumpToHomeMenu, turning lcd back on doesnt help
@@ -89,7 +91,7 @@ void Application::prepare(void)
 
 void Application::mainLoop(void)
 {
-    while (aptMainLoop() && this->isRunning()) {
+    while (aptMainLoop() && isRunning()) {
         hidScanInput();
         irrstScanInput();
 
@@ -105,18 +107,19 @@ void Application::mainLoop(void)
         Network::sendKeys(kDown, touch, leftStick, rightStick);
 
         if ((kDown & KEY_START) && (kDown & KEY_SELECT))
-            this->running = false;
+            m_running = false;
     }
 }
 
-const bool Application::get_input(const bool settings_read)
+bool Application::get_input(const bool settings_read)
 {
-    const char* initial_IP = "";
+    const char* initial_IP = settings.IP;
     char        initial_port[6];
     bool        res = false;
 
+    itoa(settings.port, initial_port, 10);
 
-    while (aptMainLoop() && this->isRunning()) {
+    while (aptMainLoop() && isRunning()) {
         printf("\x1b[1;0HIP: %-16s PORT: %-5d", settings.IP, settings.port);
         printf("\x1b[2;0HMODE: %s", getModeStr(settings.mode));
 
@@ -126,7 +129,7 @@ const bool Application::get_input(const bool settings_read)
         printf("\x1b[7;0H[R] to start");
         printf("\x1b[8;0H[START + SELECT] to exit.");
 
-        this->swap_buffers();
+        swap_buffers();
 
         hidScanInput();
         u32 kDown = hidKeysHeld();
@@ -140,27 +143,27 @@ const bool Application::get_input(const bool settings_read)
             }
 
             memset(buffer, 0, sizeof(buffer));
-            this->keyboard(buffer, "IP", initial_IP);
+            keyboard(buffer, "IP", initial_IP);
 
             if (isValidIpAddress(buffer)) {
                 strncpy(settings.IP, buffer, sizeof(settings.IP));
                 Network::setIP();
-                res &= true;
+                res |= true;
             } else {
-                res &= false;
+                res |= false;
                 // error
             }
 
             memset(buffer, 0, sizeof(buffer));
-            this->keyboard(buffer, "PORT", initial_port, true);
+            keyboard(buffer, "PORT", initial_port, true);
 
             int port = std::stoi(buffer);
             if (port > 0 && port <= std::numeric_limits<u16>().max()) {
                 settings.port = port;
                 Network::setPort();
-                res &= true;
+                res |= true;
             } else {
-                res &= false;
+                res |= false;
                 // error
             }
         } else if (kDown & KEY_DUP) {
@@ -173,10 +176,10 @@ const bool Application::get_input(const bool settings_read)
             if (settings.mode == MODE::Lite_V2)
                 settings.mode = MODE::DEFAULT;
             else  settings.mode += 1;
-            res &= true;
+            res |= true;
             svcSleepThread(200000000); // 200ms
         } else if ((kDown & KEY_START) && (kDown & KEY_SELECT)) {
-            this->running = false;
+            m_running = false;
             break;
         } else if (kDown & KEY_R) {
             break;
@@ -186,7 +189,10 @@ const bool Application::get_input(const bool settings_read)
     return res;
 }
 
-void Application::keyboard(char *buffer, const char* hint, const char* initialText, bool isPort)
+void Application::keyboard(char *buffer,
+                           const char* hint,
+                           const char* initialText,
+                           bool isPort)
 {
     static SwkbdState   swkbd;
 
@@ -208,7 +214,7 @@ void Application::keyboard(char *buffer, const char* hint, const char* initialTe
 
 void Application::wait_for_wifi(void)
 {
-    while (aptMainLoop() && this->isRunning()) {
+    while (aptMainLoop() && isRunning()) {
         hidScanInput();
 
         u32 wifiStatus = 0;
@@ -223,10 +229,10 @@ void Application::wait_for_wifi(void)
         printf("\x1b[3;0Hand that wireless communications are enabled.");
         printf("\x1b[4;0HYou can alternatively press Start and Select to exit.");
 
-        this->swap_buffers();
+        swap_buffers();
 
         if ((kDown & KEY_START) && (kDown & KEY_SELECT)) {
-            this->running = false;
+            m_running = false;
             break;
         }
     }
@@ -239,7 +245,8 @@ void Application::swap_buffers(void) const
     gspWaitForVBlank();
 }
 
-const bool Application::read_settings_value(const std::string &value, const int type)
+bool Application::read_settings_value(const std::string &value,
+                                      const int type)
 {
     std::string str;
     auto        pos = value.find_first_of(" ");
@@ -255,27 +262,30 @@ const bool Application::read_settings_value(const std::string &value, const int 
         if (str.size() <= sizeof("000.000.000.000")) {
             strncpy(settings.IP, str.c_str(), sizeof(settings.IP) - 1);
             return true;
+        } else {
+            return false;
         }
-        else return false;
     case 1:   // port
         if (str.size() <= sizeof("00000")) {
             settings.port = std::stoi(str);
             return true;
+        } else {
+            return false;
         }
-        else return false;
     case 2:   // mode
         if (str.size() <= sizeof("0")) {
             settings.mode = static_cast<MODE>(std::stoi(str));
             return true;
+        } else {
+            return false;
         }
-        else return false;
     }
 }
 
-const bool Application::read_settings(void)
+bool Application::read_settings(void)
 {
     char            buffer[BUFFER_SIZE];
-    std::fstream    input(this->settings_filename, std::ios::in);
+    std::fstream    input(settings_filename, std::ios::in);
     bool            noErr = true;
 
     if (input.is_open()) {
@@ -285,24 +295,28 @@ const bool Application::read_settings(void)
             std::transform(line.begin(), line.end(), line.begin(), ::toupper);
 
             if (line.find("IP:") != std::string::npos)
-                noErr &= this->read_settings_value(line, 0);
+                noErr &= read_settings_value(line, 0);
             else if (line.find("PORT:") != std::string::npos)
-                noErr &= this->read_settings_value(line, 1);
+                noErr &= read_settings_value(line, 1);
             else if (line.find("MODE:") != std::string::npos)
-                noErr &= this->read_settings_value(line, 2);
+                noErr &= read_settings_value(line, 2);
 
-            if (!noErr) break;
+            if (!noErr)
+                break;
         }
 
         input.close();
+
         return noErr;
-    } else return false;
+    }
+
+    return false;
 }
 
-const bool Application::write_settings(void)
+bool Application::write_settings(void)
 {
     char            buffer[BUFFER_SIZE];
-    std::fstream    output(this->settings_filename, std::ios::out);
+    std::fstream    output(settings_filename, std::ios::out);
 
     if (output.is_open()) {
         snprintf(buffer, BUFFER_SIZE, "IP: %s", settings.IP);
@@ -316,5 +330,7 @@ const bool Application::write_settings(void)
 
         output.close();
         return true;
-    } else return false;
+    }
+
+    return false;
 }

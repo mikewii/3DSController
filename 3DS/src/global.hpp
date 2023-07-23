@@ -15,7 +15,7 @@ struct T16 {
 
 struct Packet {
     u32         keys;
-    T16<u16>    touch;
+    T16<u16>    touchPad;
     T16<s16>    leftStick;
     T16<s16>    rightStick;
 };

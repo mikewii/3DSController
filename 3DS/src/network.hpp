@@ -15,16 +15,16 @@ public:
     Network();
     ~Network();
 
-    const bool  isRunning(void) const { return this->running; }
+    bool  isRunning(void) const { return m_running; }
 
     void    setPort(void);
     void    setIP(void);
     void    sendKeys(const u32 _keys, const touchPosition _touch, const circlePosition _leftstick, const circlePosition _rightstick);
 
-    sockaddr_in& getClient(void) { return this->client_addr; }
+    sockaddr_in& getClient(void) { return this->m_client_addr; }
 
 private:
-    bool        running = false;
-    int         sockfd;
-    sockaddr_in client_addr;
+    bool        m_running;
+    int         m_sockfd;
+    sockaddr_in m_client_addr;
 };

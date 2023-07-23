@@ -11,7 +11,10 @@ Normalize::Normalize()
     this->touch_y_step = TOUCH_Y_MAX / this->max;
 }
 
-Packet_lite_v1 Normalize::v1(const u32 _keys, const touchPosition _touch, const circlePosition _leftstick, const circlePosition _rightstick) const
+Packet_lite_v1 Normalize::v1(const u32 _keys,
+                             const touchPosition _touch,
+                             const circlePosition _leftstick,
+                             const circlePosition _rightstick) const
 {
     Packet_lite_v1 p;
     memset(&p, 0, sizeof(p));
@@ -46,7 +49,10 @@ Packet_lite_v1 Normalize::v1(const u32 _keys, const touchPosition _touch, const 
     return p;
 }
 
-Packet_lite_v2 Normalize::v2(const u32 _keys, const touchPosition _touch, const circlePosition _leftstick, const circlePosition _rightstick) const
+Packet_lite_v2 Normalize::v2(const u32 _keys,
+                             const touchPosition _touch,
+                             const circlePosition _leftstick,
+                             const circlePosition _rightstick) const
 {
     Packet_lite_v2 p;
     memset(&p, 0, sizeof(p));

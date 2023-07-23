@@ -11,38 +11,38 @@
 #define SOC_ALIGN       0x1000
 #define SOC_BUFFERSIZE  0x100000
 
-
 char    buffer[16];
 int     buffer_size = 0;
 
 Network::Network()
+    : m_running(false)
 {
     if (R_FAILED(socInit(static_cast<u32*>(memalign(SOC_ALIGN, SOC_BUFFERSIZE)), SOC_BUFFERSIZE)))
         return;
 
-    this->sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (this->sockfd <= 0)
+    m_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (m_sockfd <= 0)
         return;
 
-    this->client_addr.sin_family = AF_INET;
-    this->client_addr.sin_port   = htons(settings.port);
-    this->client_addr.sin_addr.s_addr = inet_pton(AF_INET, settings.IP, &this->client_addr.sin_addr);
+    m_client_addr.sin_family = AF_INET;
+    m_client_addr.sin_port   = htons(settings.port);
+    m_client_addr.sin_addr.s_addr = inet_pton(AF_INET, settings.IP, &m_client_addr.sin_addr);
 
-    if (R_FAILED(fcntl(this->sockfd, F_SETFL, O_NONBLOCK)))
+    if (R_FAILED(fcntl(m_sockfd, F_SETFL, O_NONBLOCK)))
         return;
 
-    this->running = true;
+    m_running = true;
 }
 
 Network::~Network()
 {
-    this->running = false;
+    m_running = false;
 
-    if (this->sockfd > 0 ) {
-        if (R_FAILED(closesocket(this->sockfd))) {
+    if (m_sockfd > 0 ) {
+        if (R_FAILED(closesocket(m_sockfd))) {
             //Log::print("close");
         }
-        else this->sockfd = 0;
+        else m_sockfd = 0;
     }
 
     socExit();
@@ -50,52 +50,43 @@ Network::~Network()
 
 void Network::setPort(void)
 {
-    this->client_addr.sin_port = htons(settings.port);
+    m_client_addr.sin_port = htons(settings.port);
 }
 
 void Network::setIP(void)
 {
-    inet_pton(AF_INET, settings.IP, &this->client_addr.sin_addr);
+    inet_pton(AF_INET, settings.IP, &m_client_addr.sin_addr);
 }
 
-void Network::sendKeys(const u32 _keys, const touchPosition _touch, const circlePosition _leftstick, const circlePosition _rightstick)
+void Network::sendKeys(const u32 keys,
+                       const touchPosition touchPad,
+                       const circlePosition leftStick,
+                       const circlePosition rightStick)
 {
-    switch(settings.mode){
-    case MODE::DEFAULT: {
-        Packet& p = reinterpret_cast<Packet&>(buffer);
-
-        p.keys = _keys;
-        p.touch.x = _touch.px;
-        p.touch.y = _touch.py;
-        p.leftStick.x = _leftstick.dx;
-        p.leftStick.y = _leftstick.dy;
-        p.rightStick.x = _rightstick.dx;
-        p.rightStick.y = _rightstick.dy;
+    switch(settings.mode) {
+    default:break;
+    case MODE::DEFAULT:
+        reinterpret_cast<Packet&>(buffer).keys = keys;
+        reinterpret_cast<Packet&>(buffer).touchPad.x = touchPad.px;
+        reinterpret_cast<Packet&>(buffer).touchPad.y = touchPad.py;
+        reinterpret_cast<Packet&>(buffer).leftStick.x = leftStick.dx;
+        reinterpret_cast<Packet&>(buffer).leftStick.y = leftStick.dy;
+        reinterpret_cast<Packet&>(buffer).rightStick.x = rightStick.dx;
+        reinterpret_cast<Packet&>(buffer).rightStick.y = rightStick.dy;
 
         buffer_size = sizeof(Packet);
         break;
-    }
-    case MODE::Lite_V1: {
-        Packet_lite_v1& p = reinterpret_cast<Packet_lite_v1&>(buffer);
-
-        p = Normalize::v1(_keys, _touch, _leftstick, _rightstick);
+    case MODE::Lite_V1:
+        reinterpret_cast<Packet_lite_v1&>(buffer) = Normalize::v1(keys, touchPad, leftStick, rightStick);
 
         buffer_size = sizeof(Packet_lite_v1);
         break;
-    }
-    case MODE::Lite_V2: {
-        Packet_lite_v2& p = reinterpret_cast<Packet_lite_v2&>(buffer);
-
-        p = Normalize::v2(_keys, _touch, _leftstick, _rightstick);
+    case MODE::Lite_V2:
+        reinterpret_cast<Packet_lite_v2&>(buffer) = Normalize::v2(keys, touchPad, leftStick, rightStick);
 
         buffer_size = sizeof(Packet_lite_v2);
         break;
     }
-    default:break;
-    }
 
-    sendto(this->sockfd, buffer, buffer_size, 0, reinterpret_cast<const struct sockaddr *>(&this->client_addr), sizeof(this->client_addr));
+    sendto(m_sockfd, buffer, buffer_size, 0, reinterpret_cast<const struct sockaddr *>(&m_client_addr), sizeof(m_client_addr));
 }
-
-
-
