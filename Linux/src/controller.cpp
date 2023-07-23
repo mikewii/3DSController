@@ -6,9 +6,8 @@
 #include <unistd.h>
 #include <limits>
 
-
-struct axes {
-    struct axes_config {
+struct Axes {
+    struct AxesConfig {
         int key;
 
         s16 min;
@@ -16,17 +15,17 @@ struct axes {
         s16 deathzone;
     };
 
-    axes_config    left_x;
-    axes_config    left_y;
+    AxesConfig leftX;
+    AxesConfig leftY;
 
-    axes_config    right_x;
-    axes_config    right_y;
+    AxesConfig rightX;
+    AxesConfig rightY;
 
-    axes_config    dpad_x;
-    axes_config    dpad_y;
+    AxesConfig dpadX;
+    AxesConfig dpadY;
 };
 
-static const axes controller_axes =
+static const Axes controllerAxes =
 {
     // left stick min: -157 max: 155
     {ABS_X, -150, 150, 10},
@@ -41,8 +40,7 @@ static const axes controller_axes =
     {ABS_HAT0Y, -1, 1, 0}
 };
 
-
-const std::map<const char*, const std::pair<const int, const int>> Controller::buttons_setting =
+const std::map<const char*, const std::pair<const int, const int>> Controller::m_buttonsSetting =
 {
     {"A",       {N3DS_KEY_A, BTN_A}},
     {"B",       {N3DS_KEY_B, BTN_B}},
@@ -56,7 +54,7 @@ const std::map<const char*, const std::pair<const int, const int>> Controller::b
     {"SELECT",  {N3DS_KEY_SELECT, BTN_SELECT}}
 };
 
-const std::map<u32, u32> Controller::buttons_default =
+const std::map<u32, u32> Controller::m_buttonsDefault =
 {
     {N3DS_KEY_A,        BTN_A},
     {N3DS_KEY_B,        BTN_B},
@@ -70,7 +68,7 @@ const std::map<u32, u32> Controller::buttons_default =
     {N3DS_KEY_START,    BTN_START}
 };
 
-std::map<u32, u32> Controller::buttons =
+std::map<u32, u32> Controller::m_buttons =
 {
     {N3DS_KEY_A,        BTN_A},
     {N3DS_KEY_B,        BTN_B},
@@ -84,240 +82,249 @@ std::map<u32, u32> Controller::buttons =
     {N3DS_KEY_START,    BTN_START}
 };
 
-u32 Controller::touch_button0 = BTN_THUMBL;
-u32 Controller::touch_button1 = BTN_THUMBR;
+u32 Controller::m_touchButton0 = BTN_THUMBL;
+u32 Controller::m_touchButton1 = BTN_THUMBR;
 
 Controller::Controller()
+    : m_running(false)
+    , m_touchType(TOUCH_CROSS)
 {
-    this->fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-    if (this->fd < 0) {
+    m_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+
+    if (m_fd < 0) {
         Log::print("Controller::open");
         return;
     }
 
-    this->configure();
+    configure();
 
-    if (ioctl(fd, UI_DEV_SETUP, &usetup) < 0) {
+    if (ioctl(m_fd, UI_DEV_SETUP, &m_usetup) < 0) {
         Log::print("Controller::ioctl::UI_DEV_SETUP");
         return;
     }
-    if (ioctl(fd, UI_DEV_CREATE) < 0) {
+    if (ioctl(m_fd, UI_DEV_CREATE) < 0) {
         Log::print("Controller::ioctl::UI_DEV_CREATE");
         return;
     }
 
-    this->running = true;
+    m_running = true;
 }
 
 Controller::~Controller()
 {
-    this->running = false;
+    m_running = false;
 
-    if (ioctl(fd, UI_DEV_DESTROY) < 0) {
+    if (ioctl(m_fd, UI_DEV_DESTROY) < 0) {
         Log::print("~Controller::ioctl::UI_DEV_DESTROY");
     }
 
-    if (this->fd > 0) {
-        if (close(this->fd) < 0)
+    if (m_fd > 0) {
+        if (close(m_fd) < 0)
             Log::print("Controller::close");
         else
-            this->fd = 0;
+            m_fd = 0;
     }
+}
+
+bool Controller::isRunning(void) const
+{
+    return m_running;
 }
 
 void Controller::configure(void)
 {
-    ioctl(this->fd, UI_SET_EVBIT, EV_ABS);
-    for (const auto& key : device_axes)
-        ioctl(this->fd, UI_SET_ABSBIT, key);
+    ioctl(m_fd, UI_SET_EVBIT, EV_ABS);
 
-    ioctl(this->fd, UI_SET_EVBIT, EV_KEY);
-    for (const auto& key : device_buttons)
-        ioctl(this->fd, UI_SET_KEYBIT, key);
+    for (const auto& key : deviceAxes)
+        ioctl(m_fd, UI_SET_ABSBIT, key);
 
-    memset(&this->usetup, 0, sizeof(this->usetup));
-    this->usetup.id.bustype = BUS_USB;
-    this->usetup.id.vendor = 0x0;
-    this->usetup.id.product = 0x0;
-    this->usetup.id.version = 0x0;
-    strcpy(this->usetup.name, "3DS Controller");
+    ioctl(m_fd, UI_SET_EVBIT, EV_KEY);
+
+    for (const auto& key : deviceButtons)
+        ioctl(m_fd, UI_SET_KEYBIT, key);
+
+    memset(&m_usetup, 0, sizeof(m_usetup));
+
+    m_usetup.id.bustype = BUS_PCI;
+    m_usetup.id.vendor = 0x0;
+    m_usetup.id.product = 0x0;
+    m_usetup.id.version = 0x0;
+
+    strcpy(m_usetup.name, "3DS Controller");
 }
 
 void Controller::process(void)
 {
-    this->process_keys();
-    this->process_touch();
-    this->process_dpad();
-    this->process_stick();
-    this->process_stick(true);
+    processKeys();
+    processTouch();
+    processDpad();
+    processStick();
+    processStick(true);
 
-    this->clear();
+    clear();
 }
 
 void Controller::panic(void)
 {
-    for (const auto& key : this->buttons)
-        this->_emit(EV_KEY, key.second, 0);
+    for (const auto& key : m_buttons)
+        _emit(EV_KEY, key.second, 0);
 
-    this->_emit(EV_KEY, this->touch_button0, 0);
-    this->_emit(EV_KEY, this->touch_button1, 0);
+    _emit(EV_KEY, m_touchButton0, 0);
+    _emit(EV_KEY, m_touchButton1, 0);
 
-    this->_emit(EV_ABS, controller_axes.left_x.key, 0);
-    this->_emit(EV_ABS, controller_axes.left_y.key, 0);
+    _emit(EV_ABS, controllerAxes.leftX.key, 0);
+    _emit(EV_ABS, controllerAxes.leftY.key, 0);
 
-    this->_emit(EV_ABS, controller_axes.right_x.key, 0);
-    this->_emit(EV_ABS, controller_axes.right_y.key, 0);
+    _emit(EV_ABS, controllerAxes.rightX.key, 0);
+    _emit(EV_ABS, controllerAxes.rightY.key, 0);
 
-    this->_emit(EV_ABS, controller_axes.dpad_x.key, 0);
-    this->_emit(EV_ABS, controller_axes.dpad_y.key, 0);
+    _emit(EV_ABS, controllerAxes.dpadX.key, 0);
+    _emit(EV_ABS, controllerAxes.dpadY.key, 0);
 
-    this->sync();
+    sync();
 }
 
-bool Controller::replace_button(const std::string &left, const std::string &right) const
+bool Controller::replaceButton(const std::string &left,
+                               const std::string &right)
 {
-    bool res = true;
-    int id_3ds = -1, id_uinput = -1;
+    auto id_3ds = -1;
+    auto id_uinput = -1;
 
     if (left.size() > 2 || right.size() > 2)
         return false;
 
-
-    auto validate = [&](const std::string& str) -> bool
-    {
-        for (const auto& key : Controller::buttons_setting)
+    auto validate = [&](const std::string& str) -> bool {
+        for (const auto& key : Controller::m_buttonsSetting)
             if (str.find(key.first) != std::string::npos)
                 return true;
         return false;
     };
 
-    res &= validate(left);
-    res &= validate(right);
+    if (!validate(left)
+        || !validate(right))
+        return false;
 
-    if (res) {
-        for (const auto& key : Controller::buttons_setting) {
-            if (id_3ds == -1 && left.find(key.first) != std::string::npos) {
-                id_3ds = key.second.first;
-            }
+    for (const auto& key : Controller::m_buttonsSetting) {
+        if (id_3ds == -1 && left.find(key.first) != std::string::npos)
+            id_3ds = key.second.first;
 
-            if (id_uinput == -1 && right.find(key.first) != std::string::npos) {
-                id_uinput = key.second.second;
-            }
-        }
-
-        this->replace_button(id_3ds, id_uinput);
+        if (id_uinput == -1 && right.find(key.first) != std::string::npos)
+            id_uinput = key.second.second;
     }
 
-    return res;
+    replaceButton(id_3ds, id_uinput);
+
+    return true;
 }
 
-void Controller::replace_button(int id_3ds, int id_uinput) const
+void Controller::replaceButton(const u32 id_3ds,
+                               const u32 id_uinput)
 {
-    for (auto& btn : Controller::buttons)
+    for (auto& btn : Controller::m_buttons)
         if (btn.first == id_3ds)
             btn.second = id_uinput;
 }
 
-void Controller::reset_buttons(void)
+void Controller::resetButtons(void)
 {
-    this->buttons = this->buttons_default;
+    m_buttons = m_buttonsDefault;
 }
 
-void Controller::process_keys(void) const
+void Controller::processKeys(void) const
 {
-    for (const auto& key : this->buttons) {
-        const int value = key.first & this->keys ? 1 : 0;
+    for (const auto& key : m_buttons) {
+        const auto value = key.first & m_keys ? 1 : 0;
 
-        this->_emit(EV_KEY, key.second, value);
-        this->sync();
+        _emit(EV_KEY, key.second, value);
+
+        sync();
     }
 }
 
-void Controller::process_dpad(void) const
+void Controller::processDpad(void) const
 {
-    if (N3DS_KEY_DLEFT & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().min());
-    else if (N3DS_KEY_DRIGHT & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().max());
+    if (N3DS_KEY_DLEFT & m_keys)
+        _emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().min());
+    else if (N3DS_KEY_DRIGHT & m_keys)
+        _emit(EV_ABS, ABS_HAT0X, std::numeric_limits<s16>().max());
     else
-        this->_emit(EV_ABS, ABS_HAT0X, 0);
+        _emit(EV_ABS, ABS_HAT0X, 0);
 
-    if (N3DS_KEY_DUP & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().min());
-    else if (N3DS_KEY_DDOWN & this->keys)
-        this->_emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().max());
+    if (N3DS_KEY_DUP & m_keys)
+        _emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().min());
+    else if (N3DS_KEY_DDOWN & m_keys)
+        _emit(EV_ABS, ABS_HAT0Y, std::numeric_limits<s16>().max());
     else
-        this->_emit(EV_ABS, ABS_HAT0Y, 0);
+        _emit(EV_ABS, ABS_HAT0Y, 0);
 
-    this->sync();
+    sync();
 }
 
-void Controller::process_stick(bool right) const
+void Controller::processStick(bool right) const
 {
-    const auto& cstick_x = right ? controller_axes.right_x : controller_axes.left_x;
-    const auto& cstick_y = right ? controller_axes.right_y : controller_axes.left_y;
+    const auto& cstickX = right ? controllerAxes.rightX : controllerAxes.leftX;
+    const auto& cstickY = right ? controllerAxes.rightY : controllerAxes.leftY;
 
-    const auto& x = right ? this->rstick.x : this->lstick.x;
-    const auto& y = right ? -this->rstick.y : -this->lstick.y;
+    const auto& x = right ? m_rstick.x : m_lstick.x;
+    const auto& y = right ? -m_rstick.y : -m_lstick.y;
 
-    // X
-    this->_emit(EV_ABS, cstick_x.key, x);
+    _emit(EV_ABS, cstickX.key, x);
+    _emit(EV_ABS, cstickY.key, y);
 
-    // Y
-    this->_emit(EV_ABS, cstick_y.key, y);
-
-    this->sync();
+    sync();
 }
 
-void Controller::process_touch(void) const
+void Controller::processTouch(void) const
 {
-    if (this->touch.x > 0 || this->touch.y > 0) {
-        switch(this->touch_type){
-        case TOUCH_VERTICAL: this->process_touch_vertical(); break;
-        case TOUCH_HORIZONTAL: this->process_touch_horizontal(); break;
-        case TOUCH_CROSS: this->process_touch_cross(); break;
+    if (m_touch.x > 0 || m_touch.y > 0) {
+        switch(m_touchType) {
         default:break;
-        }
+        case TOUCH_VERTICAL: return processTouchVertical();
+        case TOUCH_HORIZONTAL: return processTouchHorizontal();
+        case TOUCH_CROSS: return processTouchCross();
+        };
     } else {
-        this->_emit(EV_KEY, this->touch_button0, 0);
-        this->_emit(EV_KEY, this->touch_button1, 0);
+        _emit(EV_KEY, m_touchButton0, 0);
+        _emit(EV_KEY, m_touchButton1, 0);
     }
 }
 
 void Controller::clear(void)
 {
-    this->keys = 0;
-    this->touch.x = 0;
-    this->touch.y = 0;
-    this->lstick.x = 0;
-    this->lstick.y = 0;
-    this->rstick.x = 0;
-    this->rstick.y = 0;
+    m_keys = 0;
+    m_touch.x = 0;
+    m_touch.y = 0;
+    m_lstick.x = 0;
+    m_lstick.y = 0;
+    m_rstick.x = 0;
+    m_rstick.y = 0;
 }
 
 void Controller::sync(void) const
 {
-    input_event ie;
+    input_event e;
 
-    ie.type = EV_SYN;
-    ie.code = SYN_REPORT;
-    ie.value = 0;
-    ie.time.tv_sec = 0;
-    ie.time.tv_usec = 0;
+    e.type = EV_SYN;
+    e.code = SYN_REPORT;
+    e.value = 0;
+    e.time.tv_sec = 0;
+    e.time.tv_usec = 0;
 
-    write(this->fd, &ie, sizeof(ie));
+    write(m_fd, &e, sizeof(e));
 }
 
-void Controller::_emit(const int type, const int code, const int val) const
+void Controller::_emit(const int type,
+                       const int code,
+                       const int val) const
 {
-   struct input_event ie;
+   input_event e;
 
-   ie.type = type;
-   ie.code = code;
-   ie.value = val;
+   e.type = type;
+   e.code = code;
+   e.value = val;
    /* timestamp values below are ignored */
-   ie.time.tv_sec = 0;
-   ie.time.tv_usec = 0;
+   e.time.tv_sec = 0;
+   e.time.tv_usec = 0;
 
-   write(this->fd, &ie, sizeof(ie));
+   write(m_fd, &e, sizeof(e));
 }

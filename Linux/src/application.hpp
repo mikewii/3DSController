@@ -11,17 +11,17 @@ public:
     Application();
 
     void mainLoop(void);
-    void preprocess(void);
+    void preProcess(void);
 
-    void        write_settings(void) const;
-    const bool  read_settings(void);
+    void writeSettings(void) const;
+    bool readSettings(void);
 
-    const bool isRunning(void) { return (Application::Network::isRunning() && Application::Controller::isRunning()); }
+    bool isRunning(void);
 
 private:
     const char* settings_filename = "3DSController.conf";
 
-    const bool  setMode(const std::string& mode);
-    void        setBufferSize(void) const;
-    void        checkSettingsFile(void);
+    bool setMode(const std::string& mode);
+    void setBufferSize(void) const;
+    void checkSettingsFile(void);
 };

@@ -59,12 +59,12 @@ enum lite : u16 {
 
 
 
-static const u32 device_axes[] =
+static const u32 deviceAxes[] =
 {
     ABS_X, ABS_Y, ABS_RX, ABS_RY, ABS_HAT0X, ABS_HAT0Y
 };
 
-static const u32 device_buttons[] =
+static const u32 deviceButtons[] =
 {
     BTN_A, BTN_B, BTN_X, BTN_Y, BTN_TL, BTN_TR, BTN_TL2, BTN_TR2,
     BTN_SELECT, BTN_START, BTN_MODE, BTN_THUMBL, BTN_THUMBR
@@ -84,42 +84,45 @@ public:
     Controller();
     ~Controller();
 
-    const bool isRunning(void) const { return this->running; }
+    bool isRunning(void) const;
 
     void process(void);
     void panic(void);
 
-    bool replace_button(const std::string& left, const std::string& right) const;
-    void replace_button(int id_3ds, int id_uinput) const;
-    void reset_buttons(void);
+    bool replaceButton(const std::string& left, const std::string& right);
+    void replaceButton(const u32 id_3ds, const u32 id_uinput);
+    void resetButtons(void);
 
-    u32         keys;
-    T16<u16>    touch;
-    T16<s16>    lstick, rstick;
-    static const std::map<const char*, const std::pair<const int, const int>> buttons_setting;
-    static std::map<u32, u32> buttons;
-    static const std::map<u32, u32> buttons_default;
-    static u32 touch_button0, touch_button1;
+    u32         m_keys;
+    T16<u16>    m_touch;
+    T16<s16>    m_lstick;
+    T16<s16>    m_rstick;
+
+    static const std::map<const char*, const std::pair<const int, const int>> m_buttonsSetting;
+    static std::map<u32, u32> m_buttons;
+    static const std::map<u32, u32> m_buttonsDefault;
+    static u32 m_touchButton0;
+    static u32 m_touchButton1;
 
 private:
-    bool            running = false;
-    int             touch_type = TOUCH_CROSS;
+    bool m_running;
+    int m_touchType;
 
-    uinput_setup    usetup;
-    int             fd;
+    uinput_setup m_usetup;
+    int m_fd;
 
-    void process_keys(void) const;
-    void process_dpad(void) const;
-    void process_stick(bool right = false) const;
-    void process_touch(void) const;
+    void processKeys(void) const;
+    void processDpad(void) const;
+    void processStick(bool right = false) const;
+    void processTouch(void) const;
     void clear(void);
 
-    void process_touch_vertical(void) const;
-    void process_touch_horizontal(void) const;
-    void process_touch_cross(void) const;
+    void processTouchVertical(void) const;
+    void processTouchHorizontal(void) const;
+    void processTouchCross(void) const;
 
     void configure(void);
-    void run_queue(void);
+    void runQueue(void);
     void sync(void) const;
     void _emit(const int type, const int code, const int val) const;
 };

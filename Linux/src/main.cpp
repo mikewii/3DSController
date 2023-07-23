@@ -1,12 +1,12 @@
 #include "application.hpp"
 
-int main(int argc, char *argv[])
+int main(int, char *[])
 {
     Application app;
 
     if (app.isRunning()) {
-        app.write_settings();
-        app.read_settings();
+        app.writeSettings();
+        app.readSettings();
 
         app.mainLoop();
     }
