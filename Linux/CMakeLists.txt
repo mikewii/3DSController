@@ -1,21 +1,36 @@
 cmake_minimum_required(VERSION 3.5)
+include(helpers.cmake)
 
 project(3DSController)
 
+# 17 for filesystem
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp)
-file(GLOB PROJECT_HEADERS ${PROJECT_SOURCE_DIR}/src/*.h ${PROJECT_SOURCE_DIR}/src/*.hpp)
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+file(GLOB_RECURSE PROJECT_UI CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ui")
+file(GLOB_RECURSE PROJECT_RESOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*.qrc")
+set(PROJECT_FILES
+    ${PROJECT_SOURCES}
+    ${PROJECT_HEADERS}
+    ${PROJECT_UI}
+    ${PROJECT_RESOURCES}
+    ${PROJECT_NAME}.service)
+add_executable(${PROJECT_NAME} ${PROJECT_FILES})
 
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${PROJECT_NAME}.service)
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME} PUBLIC src)
 target_link_options(${PROJECT_NAME} PUBLIC -static -static-libgcc -static-libstdc++)
 
 install(TARGETS ${PROJECT_NAME}
     DESTINATION bin
     COMPONENT binaries)
+
 install(FILES ${PROJECT_NAME}.service
     DESTINATION /etc/systemd/user/
     COMPONENT config)
+
+target_link_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:RELEASE>:-s>)
+target_compile_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:RELEASE>:-fomit-frame-pointer>)
+
+create_target_directory_groups(${PROJECT_NAME})
